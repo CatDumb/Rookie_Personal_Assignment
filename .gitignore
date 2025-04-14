@@ -1,2 +1,6 @@
 backend/.env
 backend/RookiePersonalAssignmentVenv
+backend/migration/versions/*.pyc
+*.pyc
+__pycache__/
+*.log
