@@ -1,4 +1,5 @@
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel
+
 
 class Base(SQLModel, table=False):
     pass

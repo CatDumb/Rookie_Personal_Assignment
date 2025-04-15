@@ -1,14 +1,17 @@
 import os
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 from alembic import context
-
+from app.db.base import Base  # noqa: F401
+from dotenv import load_dotenv
+from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
-from app.db.base import Base  # Import your SQLAlchemy models here
-from app.core.db_config import engine  # Import your SQLAlchemy engine here
+
+env_file_path = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    ".env",
+)
+load_dotenv(dotenv_path=env_file_path)
 
 
 # this is the Alembic Config object, which provides
@@ -76,9 +79,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
