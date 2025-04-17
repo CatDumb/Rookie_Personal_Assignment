@@ -1,9 +1,14 @@
+import mimetypes
 from pathlib import Path
 
 from app.api.routes import api_router
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+
+mimetypes.init()
+# Add custom MIME types for serving static files
+mimetypes.add_type("application/javascript", ".js")
 
 app = FastAPI()
 
