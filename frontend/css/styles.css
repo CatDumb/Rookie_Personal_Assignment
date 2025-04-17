@@ -40,9 +40,9 @@ html, body {
     text-decoration: underline;
 }
 
-.about_us {
+.about_us, .login_page {
     text-align: center;
-    padding: 0 17% 0 17%;
+    padding: 0 25% 0 25%;
 }
 
 .about_us_main_title, about_us_sub_title {
@@ -55,12 +55,4 @@ html, body {
 
 #about_us_header{
     padding: 0 2.5%;
-}
-
-.row {
-    display: flex;
-    align-items: flex-start;
-}
-.col-md-6 {
-    min-height: 300px; /* Adjust this value as needed */
 }

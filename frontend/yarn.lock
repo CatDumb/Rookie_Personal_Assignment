@@ -2,7 +2,17 @@
 # yarn lockfile v1
 
 
-bootstrap@^5.3.5:
-  version "5.3.5"
-  resolved "https://registry.yarnpkg.com/bootstrap/-/bootstrap-5.3.5.tgz#be42cfe0d580e97ee1abb7d38ce94f5c393c9bb6"
-  integrity sha512-ct1CHKtiobRimyGzmsSldEtM03E8fcEX4Tb3dGXz1V8faRwM50+vfHwTzOxB3IlKO7m+9vTH3s/3C6T2EAPeTA==
+"@popperjs/core@^2.11.8":
+  "integrity" "sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A=="
+  "resolved" "https://registry.npmjs.org/@popperjs/core/-/core-2.11.8.tgz"
+  "version" "2.11.8"
+
+"bootstrap@^5.3.5":
+  "integrity" "sha512-ct1CHKtiobRimyGzmsSldEtM03E8fcEX4Tb3dGXz1V8faRwM50+vfHwTzOxB3IlKO7m+9vTH3s/3C6T2EAPeTA=="
+  "resolved" "https://registry.npmjs.org/bootstrap/-/bootstrap-5.3.5.tgz"
+  "version" "5.3.5"
+
+"jwt-decode@^4.0.0":
+  "integrity" "sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA=="
+  "resolved" "https://registry.npmjs.org/jwt-decode/-/jwt-decode-4.0.0.tgz"
+  "version" "4.0.0"

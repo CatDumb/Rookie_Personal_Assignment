@@ -1,8 +1,15 @@
 // ✅ explicitly point at home.js
 import { renderHome } from "./home.js";
 import { renderAbout} from "./about.js";
+import { renderLogin} from "./login.js";
+import { renderLogout } from "./logout.js";
+import { renderNavbar } from "./navbar.js";
+
 
 async function router() {
+    const nav = document.getElementById('navbar');
+    nav.innerHTML = await renderNavbar(); // Render the navbar first
+
     const hash = window.location.hash || '#home';
     const app = document.getElementById('app');
 
@@ -12,16 +19,27 @@ async function router() {
             app.innerHTML = await renderHome();
             break;
         case '#shop':
-            app.innerHTML = await renderAbout();
+            app.innerHTML = '<h1>Shop</h1>';
             break;
         case '#about':
-            app.innerHTML = '<h1>About Page</h1>';
+            app.innerHTML = await renderAbout();
             break;
         case '#cart':
             app.innerHTML = '<h1>Cart Page</h1>';
             break;
         case '#login':
-            app.innerHTML = '<h1>Login Page</h1>';
+            // Render HTML first
+            app.innerHTML = await renderLogin();
+
+            // Initialize login logic AFTER DOM is populated
+            const { initLogin } = await import('./login.js');
+            initLogin();
+            break;
+        case '#profile':
+            app.innerHTML = '<h1>Profile Page</h1>';
+            break;
+        case "#logout":
+            app.innerHTML = await renderLogout();
             break;
         default:
             app.innerHTML = '<h1>404 Not Found</h1>';
