@@ -79,7 +79,12 @@ async def login_user(request: LoginUserRequest, db: Session = Depends(get_db)):
     # Generate a new token by passing the public user model directly
     new_token = create_access_token(data=user_data)
 
-    return {"message": "Login successful", "token": new_token}
+    return {
+        "message": "Login successful",
+        "token": new_token,
+        "last_name": user.last_name,
+        "first_name": user.first_name,
+    }
 
 
 @router.post("/logout")
