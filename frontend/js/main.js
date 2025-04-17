@@ -1,5 +1,6 @@
 // ✅ explicitly point at home.js
 import { renderHome } from "./home.js";
+import { renderAbout} from "./about.js";
 
 async function router() {
     const hash = window.location.hash || '#home';
@@ -11,7 +12,7 @@ async function router() {
             app.innerHTML = await renderHome();
             break;
         case '#shop':
-            app.innerHTML = '<h1>Shop Page</h1>';
+            app.innerHTML = await renderAbout();
             break;
         case '#about':
             app.innerHTML = '<h1>About Page</h1>';
