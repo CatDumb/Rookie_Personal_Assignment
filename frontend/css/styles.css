@@ -1,14 +1,9 @@
 html, body {
     min-width: 320px;
-    min-height: 100vh;
+    min-height: 100%;
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
-}
-
-body {
-    display: flex;
-    flex-direction: column;
 }
 
 #app {
@@ -43,4 +38,29 @@ body {
 
 .nav-link.active {
     text-decoration: underline;
+}
+
+.about_us {
+    text-align: center;
+    padding: 0 17% 0 17%;
+}
+
+.about_us_main_title, about_us_sub_title {
+    text-align: center;
+}
+
+.about_us_text{
+    text-align: left;
+}
+
+#about_us_header{
+    padding: 0 2.5%;
+}
+
+.row {
+    display: flex;
+    align-items: flex-start;
+}
+.col-md-6 {
+    min-height: 300px; /* Adjust this value as needed */
 }
