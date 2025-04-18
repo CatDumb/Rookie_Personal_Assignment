@@ -1,24 +1,44 @@
-import mimetypes
+import os
 from pathlib import Path
 
-from app.api.routes import api_router
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-mimetypes.init()
-# Add custom MIME types for serving static files
-mimetypes.add_type("application/javascript", ".js")
 
-app = FastAPI()
+class StrictMIMEStaticFiles(StaticFiles):
+    """Enforce correct MIME types for all common web files"""
 
-# Mount the frontend directory to serve static files
-frontend_path = Path(__file__).parent.parent.parent.parent / "frontend"
-app.mount("/frontend", StaticFiles(directory=frontend_path, html=True), name="frontend")
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
 
-app.include_router(api_router, prefix="/api", tags=["api"])
+        # Map file extensions to correct MIME types
+        mime_types = {
+            ".js": "application/javascript",  # Correct MIME type for JavaScript modules
+            ".css": "text/css",
+            ".svg": "image/svg+xml",
+            ".html": "text/html",
+            ".json": "application/json",
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".woff2": "font/woff2",
+        }
+
+        ext = os.path.splitext(path)[1]
+        if ext in mime_types:
+            response.headers["Content-Type"] = mime_types[ext]
+
+        return response
 
 
-@app.get("/")
-def read_index():
-    return FileResponse(frontend_path / "index.html")
+app = FastAPI(title="Rookie Personal Assignment")
+
+# Path configuration
+current_file = Path(__file__).resolve()
+frontend_dir = current_file.parent.parent.parent.parent / "frontend"
+
+# Mount static files
+app.mount(
+    "/",
+    StrictMIMEStaticFiles(directory=str(frontend_dir), html=True, check_dir=True),
+    name="frontend",
+)
