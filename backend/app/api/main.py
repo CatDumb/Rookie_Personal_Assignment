@@ -1,44 +1,47 @@
 import os
-from pathlib import Path
 
+from app.api.routes import api_router  # Import your API routes
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+app = FastAPI()
 
-class StrictMIMEStaticFiles(StaticFiles):
-    """Enforce correct MIME types for all common web files"""
-
-    async def get_response(self, path: str, scope):
-        response = await super().get_response(path, scope)
-
-        # Map file extensions to correct MIME types
-        mime_types = {
-            ".js": "application/javascript",  # Correct MIME type for JavaScript modules
-            ".css": "text/css",
-            ".svg": "image/svg+xml",
-            ".html": "text/html",
-            ".json": "application/json",
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".woff2": "font/woff2",
-        }
-
-        ext = os.path.splitext(path)[1]
-        if ext in mime_types:
-            response.headers["Content-Type"] = mime_types[ext]
-
-        return response
-
-
-app = FastAPI(title="Rookie Personal Assignment")
-
-# Path configuration
-current_file = Path(__file__).resolve()
-frontend_dir = current_file.parent.parent.parent.parent / "frontend"
-
-# Mount static files
-app.mount(
-    "/",
-    StrictMIMEStaticFiles(directory=str(frontend_dir), html=True, check_dir=True),
-    name="frontend",
+# Path to frontend directory
+frontend_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../../../frontend"),
 )
+
+# Mount static directories
+app.mount(
+    "/styles",
+    StaticFiles(directory=os.path.join(frontend_path, "styles")),
+    name="styles",
+)
+app.mount(
+    "/scripts",
+    StaticFiles(directory=os.path.join(frontend_path, "scripts")),
+    name="scripts",
+)
+app.mount("/src", StaticFiles(directory=os.path.join(frontend_path, "src")), name="src")
+app.mount(
+    "/static",
+    StaticFiles(directory=os.path.join(frontend_path, "static")),
+    name="static",
+)
+
+
+# Serve favicon.ico explicitly
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse(os.path.join(frontend_path, "static", "favicon", "favicon.ico"))
+
+
+# Serve index.html for the root route
+@app.get("/")
+async def serve_index():
+    return FileResponse(os.path.join(frontend_path, "src", "index.html"))
+
+
+# Include your API routes
+app.include_router(api_router)
