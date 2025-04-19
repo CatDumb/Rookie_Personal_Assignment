@@ -1,0 +1,11 @@
+.header-text {
+    font-weight: bold;
+    font-size: 1.2rem; /* Equivalent to h4 size */
+    margin: 1rem 0 1rem 0; /* Adjusted for spacing */
+}
+
+.header-divider{
+    border: none;
+    border-top: 1px solid lightgray;
+    margin: 0.5rem 0;
+}

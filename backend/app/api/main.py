@@ -14,33 +14,18 @@ frontend_path = os.path.abspath(
 
 # Mount static directories
 app.mount(
-    "/styles",
-    StaticFiles(directory=os.path.join(frontend_path, "styles")),
-    name="styles",
+    "/public",
+    StaticFiles(directory=os.path.join(frontend_path, "public")),
+    name="public",
 )
-app.mount(
-    "/scripts",
-    StaticFiles(directory=os.path.join(frontend_path, "scripts")),
-    name="scripts",
-)
+
 app.mount("/src", StaticFiles(directory=os.path.join(frontend_path, "src")), name="src")
-app.mount(
-    "/static",
-    StaticFiles(directory=os.path.join(frontend_path, "static")),
-    name="static",
-)
-
-
-# Serve favicon.ico explicitly
-@app.get("/favicon.ico")
-async def favicon():
-    return FileResponse(os.path.join(frontend_path, "static", "favicon", "favicon.ico"))
 
 
 # Serve index.html for the root route
 @app.get("/")
 async def serve_index():
-    return FileResponse(os.path.join(frontend_path, "src", "index.html"))
+    return FileResponse(os.path.join(frontend_path, "index.html"))
 
 
 # Include your API routes

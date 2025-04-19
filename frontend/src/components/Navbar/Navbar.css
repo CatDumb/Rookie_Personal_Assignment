@@ -1,0 +1,171 @@
+.navbar {
+    background-color: lightgray;
+    height: 10vh;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    position: relative;
+}
+
+.navbar .left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.navbar ul {
+    list-style: none;
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+}
+
+/* Update your existing li styles */
+.navbar li {
+    position: relative;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    text-align: center;
+    overflow: hidden;
+    /* Ensures the underline doesn't bleed outside */
+}
+
+/* Add expanding underline animation */
+.navbar li::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background-color: black;
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.navbar li.active::after {
+    width: 80%;
+}
+
+/* Optional: Hover effect */
+.navbar li:not(.active):hover::after {
+    width: 60%;
+    background-color: black;
+}
+
+.hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 0.3rem;
+    cursor: pointer;
+    z-index: 11;
+    padding: 0.5rem;
+}
+
+.hamburger .bar {
+    width: 25px;
+    height: 3px;
+    background-color: #333;
+    transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .hamburger {
+        display: flex;
+    }
+
+    /* Remove default ul styles */
+    .navbar ul {
+        flex-direction: column;
+    }
+
+    .nav_tab_container {
+        position: fixed;
+        top: 10vh;
+        right: -100%;
+        width: 100%;
+        height: auto;
+        flex-direction: column;
+        /* Ensure vertical stacking */
+        background-color: lightgray;
+        z-index: 10;
+        transition: right 0.3s ease;
+        padding: 0;
+        /* Remove extra padding */
+    }
+
+    .nav_tab_container.open {
+        right: 0;
+        display: flex;
+        /* Force flex display */
+    }
+
+    .navbar ul.nav_tab_container li {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        text-align: center;
+        /* Add visual separation */
+    }
+
+    /* Remove last border */
+    .navbar ul.nav_tab_container li:last-child {
+        border-bottom: none;
+    }
+
+    .navbar li::after {
+        left: 0;
+        transform: none;
+        width: 0;
+    }
+
+    .navbar li.active::after {
+        width: 100%;
+    }
+}
+
+.nav_tab_container {
+    display: none;
+}
+
+.nav_tab_container.open {
+    display: flex;
+}
+
+/* Left section styles */
+.left {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.logo {
+    height: 32px;
+    width: 32px;
+    display: flex;
+    align-items: center;
+}
+
+.logo-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-decoration: none;
+    color: inherit;
+    height: 100%;
+}
+
+.logo img {
+    height: 100%;
+    width: auto;
+}
+
+.page_name {
+    font-weight: bold;
+    font-size: 1.5rem;
+    white-space: nowrap;
+}
