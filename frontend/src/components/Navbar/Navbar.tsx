@@ -42,26 +42,26 @@ function Navbar({ isLoggedIn, toggleLogin }: NavbarProps) {
 
       <ul className={`nav_tab_container ${isMenuOpen ? 'open' : ''}`}>
         <li className={getActiveTab('/')}>
-          <Link to="/" onClick={closeMobileMenu}>Home</Link>
+          <Link to="/" onClick={closeMobileMenu} className='nav-link'>Home</Link>
         </li>
         <li className={getActiveTab('/shop')}>
-          <Link to="/shop" onClick={closeMobileMenu}>Shop</Link>
+          <Link to="/shop" onClick={closeMobileMenu} className='nav-link'>Shop</Link>
         </li>
         <li className={getActiveTab('/about')}>
-          <Link to="/about" onClick={closeMobileMenu}>About</Link>
+          <Link to="/about" onClick={closeMobileMenu} className='nav-link'>About</Link>
         </li>
         {/* <li className={getActiveTab('/cart')}>
-          <Link to="/cart" onClick={closeMobileMenu}>
+          <Link to="/cart" onClick={closeMobileMenu} className='nav-link'>
             Cart ({cartItems.length})
           </Link>
         </li> */}
         {isLoggedIn ? (
           <>
             <li className="user-name">{`${firstName} ${lastName}`}</li>
-            <li onClick={toggleLogin}>Sign out</li>
+            <li onClick={toggleLogin} className='nav-link'>Sign out</li>
           </>
         ) : (
-          <li onClick={toggleLogin}>Sign in</li>
+            <li onClick={toggleLogin} className='nav-link'>Sign in</li>
         )}
       </ul>
     </nav>

@@ -1,10 +1,14 @@
-/* AboutPage.css */
+.page-container {
+    margin-right: 10%;
+    margin-left: 10%;
+}
 
 .about-content{
     text-align: center;
     margin-left: 20%;
     margin-right: 20%;
 }
+
 .welcome-title {
     text-align: center;
     font-size: 2.5rem;
