@@ -1,8 +1,8 @@
-import './App.css';
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
-import AboutPage from './components/Page/About'; // Make sure to create this file
+import Footer from './components/Footer/Footer';
+import AboutPage from './components/Page/About';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -11,13 +11,14 @@ function App() {
 
   return (
     <Router>
-      <div className="app">
+      <div className="min-h-screen w-screen bg-white text-black flex flex-col overflow-y-auto overflow-x-hidden scroll-smooth relative scrollbar scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-200">
         <Navbar isLoggedIn={isLoggedIn} toggleLogin={toggleLogin} />
-        <main className="main-content">
+        <main className=" flex-grow">
           <Routes>
             <Route path="/about" element={<AboutPage />} />
           </Routes>
         </main>
+        <Footer />
       </div>
     </Router>
   );

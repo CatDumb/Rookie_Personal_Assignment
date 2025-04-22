@@ -1,13 +1,12 @@
-// src/pages/AboutPage.tsx
 import { AboutHeader } from '../Header/AboutHeader';
-import './About.css'; // Create this CSS file
+import './About.css';
 
 const AboutPage = () => {
     return (
-        <div className="page-container">
+        <div className="ml-10 mr-10">
             <AboutHeader />
             <section className="about-content">
-                <h1 className="welcome-title">Welcome to Bookworm</h1>
+                <div className="welcome-title">Welcome to Bookworm</div>
 
                 <p className="section-text">
                     "Bookworm is an independent New York bookstore and language school with locations in Manhattan and Brooklyn. We specialize in travel books and language classes."

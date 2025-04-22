@@ -1,9 +1,9 @@
 import './Header.css';
 
-export const AboutHeader = () => {
+export const SignInHeader = () => {
     return (
         <div className="header">
-            <div className="header-text"><h3>About Us</h3></div>
+            <div className="header-text"><h3>Sign In</h3></div>
             <hr className="header-divider" />
         </div>
     );
