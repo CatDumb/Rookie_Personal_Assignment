@@ -60,23 +60,24 @@ const CarouselBar = () => {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center justify-center w-full">
             <div className="border-2 border-gray-400 rounded-lg py-5 px-4 w-full relative">
                 <div className="relative">
                     <Carousel
                         opts={{
                             align: "start",
-                            loop: validBooks.length > 1 // Only loop if multiple items
+                            loop: validBooks.length > 1,
+                            dragFree: true
                         }}
                         className="w-full"
                     >
-                        <CarouselContent className="flex ml-10 gap-4">
+                        <CarouselContent>
                             {validBooks.map((book) => (
                                 <CarouselItem
                                     key={book.id}
                                     className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
                                 >
-                                    <div className="p-1">
+                                    <div className="flex items-center justify-center p-1">
                                         <BookCard
                                             title={book.name}
                                             author={book.author}
@@ -90,8 +91,8 @@ const CarouselBar = () => {
                         </CarouselContent>
                         {validBooks.length > 1 && (
                             <>
-                                <CarouselPrevious />
-                                <CarouselNext />
+                                <CarouselPrevious className="left-2 md:left-4 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
+                                <CarouselNext className="right-2 md:right-4 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
                             </>
                         )}
                     </Carousel>

@@ -8,7 +8,7 @@ const HomePage = () => {
       <div className="flex flex-col gap-4 py-4">
         <div className="flex justify-between items-center">
           <div className="text-lg font-bold">On sale</div>
-          <Button asChild>
+          <Button asChild variant="link">
             <a href="/" className="text-sm text-gray-500 hover:text-gray-700">
               View all
             </a>
@@ -21,7 +21,6 @@ const HomePage = () => {
         <Featured />
       </div>
     </div>
-
   );
 };
 

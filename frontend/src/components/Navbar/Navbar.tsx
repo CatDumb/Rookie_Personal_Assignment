@@ -1,25 +1,29 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../Context/AuthContext';
 import { LoginPayload } from '../../api/auth';
 
 function Navbar() {
   const { isLoggedIn, firstName, lastName, login, logout, error: authError } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
+  const dropdownRef = useRef<HTMLLIElement>(null);
 
   const handleMenuClick = () => setIsMenuOpen(!isMenuOpen);
   const closeMobileMenu = () => setIsMenuOpen(false);
+  const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
 
   const handleSignOut = () => {
     logout();
     closeMobileMenu();
+    setIsDropdownOpen(false);
     navigate('/');
   };
 
@@ -37,6 +41,20 @@ function Navbar() {
       setError(authError || 'Invalid email or password');
     }
   };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const getActiveTab = (path: string) =>
     location.pathname === path ? 'font-bold' : '';
@@ -98,17 +116,38 @@ function Navbar() {
           </Link>
         </li>
         {isLoggedIn ? (
-          <>
-            <li className="w-full md:w-auto px-4 py-2.5 text-center">{`${firstName} ${lastName}`}</li>
-            <li className="w-full md:w-auto text-center">
-              <button
-                onClick={handleSignOut}
-                className="w-full md:w-auto px-4 py-2.5 hover:bg-gray-400/30 rounded transition-colors"
+          <li className="w-full md:w-auto text-center relative" ref={dropdownRef}>
+            <button
+              onClick={toggleDropdown}
+              className="w-full md:w-auto px-4 py-2.5 hover:bg-gray-400/30 rounded transition-colors flex items-center justify-center md:justify-start gap-1"
+            >
+              <span>{`${firstName} ${lastName}`}</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
               >
-                Sign out
-              </button>
-            </li>
-          </>
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 md:right-0 left-1/2 md:left-auto transform -translate-x-1/2 md:translate-x-0">
+                <button
+                  onClick={handleSignOut}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
+          </li>
         ) : (
           <li className="w-full md:w-auto text-center">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
