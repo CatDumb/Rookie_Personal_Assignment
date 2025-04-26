@@ -1,8 +1,8 @@
-"""Initial commit
+"""initial commit
 
-Revision ID: 02139711e8d0
+Revision ID: af66cea49985
 Revises:
-Create Date: 2025-04-15 15:52:10.887415
+Create Date: 2025-04-25 09:16:08.685824
 
 """
 
@@ -13,7 +13,7 @@ import sqlmodel
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "02139711e8d0"
+revision: str = "af66cea49985"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,6 +31,14 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("author_bio", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table(
+        "book_stats",
+        sa.Column("id", sa.BigInteger(), nullable=False),
+        sa.Column("review_count", sa.BigInteger(), nullable=False),
+        sa.Column("ratings_sum", sa.BigInteger(), nullable=False),
+        sa.Column("avg_rating", sa.Numeric(precision=5, scale=2), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -132,11 +140,7 @@ def upgrade() -> None:
         ),
         sa.Column("review_details", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column("review_date", sa.TIMESTAMP(), nullable=False),
-        sa.Column(
-            "rating_start",
-            sqlmodel.sql.sqltypes.AutoString(length=255),
-            nullable=False,
-        ),
+        sa.Column("rating_star", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(["book_id"], ["book.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -153,5 +157,6 @@ def downgrade() -> None:
     op.drop_table("book")
     op.drop_table("user")
     op.drop_table("category")
+    op.drop_table("book_stats")
     op.drop_table("author")
     # ### end Alembic commands ###

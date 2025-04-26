@@ -1,6 +1,7 @@
 from .author import Author
 from .base import Base
 from .book import Book
+from .bookstats import BookStats
 from .category import Category
 from .discount import Discount
 from .order import Order
@@ -18,4 +19,5 @@ __all__ = [
     "Order",
     "Review",
     "User",
+    "BookStats",
 ]

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { BookCard } from "../ui/card";
 import {
     Carousel,
@@ -6,8 +7,58 @@ import {
     CarouselNext,
     CarouselPrevious,
 } from "../ui/carousel";
+import { getOnSale, OnSaleItem } from "../../api/onsale";
 
 const CarouselBar = () => {
+    const [saleBooks, setSaleBooks] = useState<OnSaleItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        setLoading(true);
+        setError("");
+
+        getOnSale()
+            .then((books) => {
+                setSaleBooks(books);
+                setLoading(false);
+            })
+            .catch((err) => {
+                console.error("Failed to fetch books on sale:", err);
+                setError("Failed to load books on sale");
+                setLoading(false);
+            });
+    }, []);
+
+    // Show loading state
+    if (loading) {
+        return (
+            <div className="text-center py-8">
+                Loading sale items...
+            </div>
+        );
+    }
+
+    // Show error state
+    if (error) {
+        return (
+            <div className="text-center py-8 text-red-500">
+                {error}
+            </div>
+        );
+    }
+
+    // Filter out empty items and ensure minimum 1 item
+    const validBooks = saleBooks.filter(book => book?.name);
+
+    if (validBooks.length === 0) {
+        return (
+            <div className="text-center py-8 text-gray-500">
+                No books currently on sale
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col items-center justify-center">
             <div className="border-2 border-gray-400 rounded-lg py-5 px-4 w-full relative">
@@ -15,108 +66,39 @@ const CarouselBar = () => {
                     <Carousel
                         opts={{
                             align: "start",
-                            loop: true
+                            loop: validBooks.length > 1 // Only loop if multiple items
                         }}
                         className="w-full"
                     >
                         <CarouselContent className="flex ml-10 gap-4">
-                            <CarouselItem key="item-1" className="basis-1/4">
-                                <div>
-                                    <BookCard
-                                        title="Where the Crawdads Sing"
-                                        author="Delia Owens"
-                                        price={20.0}
-                                        originalPrice={49.09}
-                                        imageUrl="/crawdads.jpg"
-                                    />
-                                </div>
-                            </CarouselItem>
-                            <CarouselItem key="item-2" className="basis-1/4">
-                                <div>
-                                    <BookCard
-                                        title="Book Title 2"
-                                        author="Author 2"
-                                        price={25.0}
-                                        originalPrice={50.0}
-                                        imageUrl="/book2.jpg"
-                                    />
-                                </div>
-                            </CarouselItem>
-                            <CarouselItem key="item-3" className="basis-1/4">
-                                <div>
-                                    <BookCard
-                                        title="Book Title 3"
-                                        author="Author 3"
-                                        price={30.0}
-                                        originalPrice={60.0}
-                                        imageUrl="/book3.jpg"
-                                    />
-                                </div>
-                            </CarouselItem>
-                            <CarouselItem key="item-4" className="basis-1/4">
-                                <div>
-                                    <BookCard
-                                        title="Book Title 4"
-                                        author="Author 4"
-                                        price={35.0}
-                                        originalPrice={70.0}
-                                        imageUrl="/book4.jpg"
-                                    />
-                                </div>
-                            </CarouselItem>
-                            <CarouselItem key="item-5" className="basis-1/4">
-                                <div className="p-1">
-                                    <BookCard
-                                        title="Book Title 5"
-                                        author="Author 5"
-                                        price={40.0}
-                                        originalPrice={80.0}
-                                        imageUrl="/book5.jpg"
-                                    />
-                                </div>
-                            </CarouselItem>
-                            <CarouselItem key="item-6" className="basis-1/4">
-                                <div className="p-1">
-                                    <BookCard
-                                        title="Book Title 6"
-                                        author="Author 6"
-                                        price={45.0}
-                                        originalPrice={90.0}
-                                        imageUrl="/book6.jpg"
-                                    />
-                                </div>
-                            </CarouselItem>
-                            <CarouselItem key="item-7" className="basis-1/4">
-                                <div className="p-1">
-                                    <BookCard
-                                        title="Book Title 7"
-                                        author="Author 7"
-                                        price={50.0}
-                                        originalPrice={100.0}
-                                        imageUrl="/book7.jpg"
-                                    />
-                                </div>
-                            </CarouselItem>
-                            <CarouselItem key="item-8" className="basis-1/4">
-                                <div className="p-1">
-                                    <BookCard
-                                        title="Book Title 8"
-                                        author="Author 8"
-                                        price={55.0}
-                                        originalPrice={110.0}
-                                        imageUrl="/book8.jpg"
-                                    />
-                                </div>
-                            </CarouselItem>
+                            {validBooks.map((book) => (
+                                <CarouselItem
+                                    key={book.id}
+                                    className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                                >
+                                    <div className="p-1">
+                                        <BookCard
+                                            title={book.name}
+                                            author={book.author}
+                                            price={book.price}
+                                            originalPrice={book.discount_price || undefined}
+                                            imageUrl={book.cover_photo}
+                                        />
+                                    </div>
+                                </CarouselItem>
+                            ))}
                         </CarouselContent>
-                        {/* Buttons remain in place */}
-                        <CarouselPrevious />
-                        <CarouselNext />
+                        {validBooks.length > 1 && (
+                            <>
+                                <CarouselPrevious />
+                                <CarouselNext />
+                            </>
+                        )}
                     </Carousel>
                 </div>
             </div>
         </div>
     );
-};
+}
 
 export default CarouselBar;

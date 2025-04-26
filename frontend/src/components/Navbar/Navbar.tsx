@@ -1,15 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
+import { useAuth } from '../context/AuthContext';
+import { LoginPayload } from '../../api/auth';
 
-interface NavbarProps {
-  isLoggedIn: boolean;
-  toggleLogin: () => void;
-}
-
-function Navbar({ isLoggedIn, toggleLogin }: NavbarProps) {
-  const first_name = localStorage.getItem('first_name');
-  const last_name = localStorage.getItem('last_name');
+function Navbar() {
+  const { isLoggedIn, firstName, lastName, login, logout, error: authError } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [email, setEmail] = useState('');
@@ -22,34 +18,23 @@ function Navbar({ isLoggedIn, toggleLogin }: NavbarProps) {
   const closeMobileMenu = () => setIsMenuOpen(false);
 
   const handleSignOut = () => {
-    toggleLogin();
+    logout();
     closeMobileMenu();
-    window.location.href = '/';
+    navigate('/');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    try {
-      const response = await fetch('http://127.0.0.1:8000/api/user/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+    const payload: LoginPayload = { email, password };
+    const success = await login(payload);
 
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('first_name', data.first_name);
-        localStorage.setItem('last_name', data.last_name);
-        toggleLogin();
-        setIsDialogOpen(false);
-        navigate('/');
-      } else {
-        setError('Invalid email or password');
-      }
-    } catch {
-      setError('An error occurred during login');
+    if (success) {
+      setIsDialogOpen(false);
+      navigate('/');
+    } else {
+      setError(authError || 'Invalid email or password');
     }
   };
 
@@ -72,71 +57,65 @@ function Navbar({ isLoggedIn, toggleLogin }: NavbarProps) {
       </div>
 
       <div
-        className={`md:hidden flex flex-col gap-1.5 cursor-pointer z-20 p-2 absolute right-4 top-1/2 -translate-y-1/2 ${isMenuOpen ? 'open' : ''
-          }`}
+        className={`md:hidden flex flex-col gap-1.5 cursor-pointer z-20 p-2 ${isMenuOpen ? 'open' : ''}`}
         onClick={handleMenuClick}
       >
-        <div className="w-6 h-[3px] bg-gray-800 transition-all"></div>
-        <div className="w-6 h-[3px] bg-gray-800 transition-all"></div>
-        <div className="w-6 h-[3px] bg-gray-800 transition-all"></div>
+        <div className={`w-6 h-[3px] bg-gray-800 transition-all ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></div>
+        <div className={`w-6 h-[3px] bg-gray-800 transition-all ${isMenuOpen ? 'opacity-0' : ''}`}></div>
+        <div className={`w-6 h-[3px] bg-gray-800 transition-all ${isMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></div>
       </div>
 
       <ul
-        className={`fixed md:static top-20 right-0 w-full md:w-auto h-[calc(100vh-80px)] md:h-auto overflow-y-auto md:overflow-visible flex flex-col md:flex-row items-center gap-4 bg-gray-300 z-10 py-4 md:py-0 transition-transform duration-300 ${isMenuOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
-          }`}
+        className={`fixed md:static top-20 left-0 right-0 w-full md:w-auto max-h-[calc(100vh-80px)] md:max-h-none overflow-y-auto md:overflow-visible flex flex-col md:flex-row items-center gap-4 bg-gray-300 z-10 py-4 md:py-0 transition-all duration-300 ${
+          isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto'
+        }`}
       >
-        <li className="w-full md:w-auto">
+        <li className="w-full md:w-auto text-center">
           <Link
             to="/"
             onClick={closeMobileMenu}
-            className={`relative px-4 py-2.5 text-center hover:bg-gray-400/30 rounded transition-colors ${getActiveTab(
-              '/'
-            )}`}
+            className={`block w-full md:inline-block md:w-auto px-4 py-2.5 hover:bg-gray-400/30 rounded transition-colors ${getActiveTab('/')}`}
           >
             Home
           </Link>
         </li>
-        <li className="w-full md:w-auto">
+        <li className="w-full md:w-auto text-center">
           <Link
             to="/shop"
             onClick={closeMobileMenu}
-            className={`relative px-4 py-2.5 text-center hover:bg-gray-400/30 rounded transition-colors ${getActiveTab(
-              '/shop'
-            )}`}
+            className={`block w-full md:inline-block md:w-auto px-4 py-2.5 hover:bg-gray-400/30 rounded transition-colors ${getActiveTab('/shop')}`}
           >
             Shop
           </Link>
         </li>
-        <li className="w-full md:w-auto">
+        <li className="w-full md:w-auto text-center">
           <Link
             to="/about"
             onClick={closeMobileMenu}
-            className={`relative px-4 py-2.5 text-center hover:bg-gray-400/30 rounded transition-colors ${getActiveTab(
-              '/about'
-            )}`}
+            className={`block w-full md:inline-block md:w-auto px-4 py-2.5 hover:bg-gray-400/30 rounded transition-colors ${getActiveTab('/about')}`}
           >
             About
           </Link>
         </li>
         {isLoggedIn ? (
           <>
-            <li className="px-4 py-2.5 text-center">{`${first_name} ${last_name}`}</li>
-            <li className="w-full md:w-auto">
+            <li className="w-full md:w-auto px-4 py-2.5 text-center">{`${firstName} ${lastName}`}</li>
+            <li className="w-full md:w-auto text-center">
               <button
                 onClick={handleSignOut}
-                className="w-full px-4 py-2.5 text-center hover:bg-gray-400/30 rounded transition-colors"
+                className="w-full md:w-auto px-4 py-2.5 hover:bg-gray-400/30 rounded transition-colors"
               >
                 Sign out
               </button>
             </li>
           </>
         ) : (
-          <li className="w-full md:w-auto">
+          <li className="w-full md:w-auto text-center">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <button
                   onClick={closeMobileMenu}
-                  className="w-full px-4 py-2.5 text-center hover:bg-gray-400/30 rounded transition-colors"
+                  className="w-full md:w-auto px-4 py-2.5 hover:bg-gray-400/30 rounded transition-colors"
                 >
                   Sign in
                 </button>

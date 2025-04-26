@@ -12,4 +12,4 @@ class Review(Base, table=True):
     review_title: str = Field(default=None, max_length=120)
     review_details: str = Field(default=None)
     review_date: str = Field(default=None, sa_type=TIMESTAMP)
-    rating_start: str = Field(default=None, max_length=255)
+    rating_star: int = Field(default=None, le=1, ge=5)

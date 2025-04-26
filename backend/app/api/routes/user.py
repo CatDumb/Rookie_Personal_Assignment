@@ -81,7 +81,7 @@ async def login_user(request: LoginUserRequest, db: Session = Depends(get_db)):
 
     return {
         "message": "Login successful",
-        "token": new_token,
+        "access_token": new_token,
         "last_name": user.last_name,
         "first_name": user.first_name,
     }
