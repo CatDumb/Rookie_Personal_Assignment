@@ -61,7 +61,7 @@ const CarouselBar = () => {
 
     return (
         <div className="flex flex-col items-center justify-center w-full">
-            <div className="border-2 border-gray-400 rounded-lg py-5 px-4 w-full relative">
+            <div className="border-2 border-gray-400 rounded-lg py-5 px-10 w-full relative">
                 <div className="relative">
                     <Carousel
                         opts={{
@@ -92,8 +92,8 @@ const CarouselBar = () => {
                         </CarouselContent>
                         {validBooks.length > 1 && (
                             <>
-                                <CarouselPrevious className="left-2 md:left-4 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
-                                <CarouselNext className="right-2 md:right-4 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
+                                <CarouselPrevious className="-left-6 md:-left-7 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
+                                <CarouselNext className="-right-6 md:-right-7 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
                             </>
                         )}
                     </Carousel>

@@ -5,6 +5,7 @@ import AboutPage from './Page/About';
 import HomePage from './Page/Home';
 import BookDetails from './Page/BookDetails';
 import { AuthProvider } from './components/Context/AuthContext';
+import ShopPage from './Page/Shop';
 
 function App() {
   return (
@@ -17,6 +18,8 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/book/:id" element={<BookDetails />} />
+              <Route path="/shop" element={<ShopPage />} />
+              <Route path="*" element={<div>404 Not Found</div>} />
             </Routes>
           </main>
           <Footer />

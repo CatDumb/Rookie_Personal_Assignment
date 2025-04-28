@@ -7,14 +7,16 @@ const HomePage = () => {
     <div>
       <div className="flex flex-col gap-4 py-4">
         <div className="flex justify-between items-center">
-          <div className="text-lg font-bold">On sale</div>
+          <div className="text-2xl font-bold">On sale</div>
           <Button>
             <a href="/" >
               View all
             </a>
           </Button>
         </div>
-        <CarouselBar />
+        <div className="py-2">
+          <CarouselBar />
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 py-4">

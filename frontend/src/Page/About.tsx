@@ -5,7 +5,7 @@ const AboutPage = () => {
         <div>
             <AboutHeader />
             <section className="max-w-4xl mx-auto">
-                <div className="text-5xl font-bold my-4">Welcome to Bookworm</div>
+                <div className="text-5xl text-center font-bold my-4">Welcome to Bookworm</div>
 
                 <p className="leading-[1.6] mb-4 text-left">
                     "Bookworm is an independent New York bookstore and language school with locations in Manhattan and Brooklyn. We specialize in travel books and language classes."
