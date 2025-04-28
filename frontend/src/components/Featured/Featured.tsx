@@ -77,6 +77,7 @@ function Featured() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10 justify-items-center">
                 {recommendedBooks.map((book) => (
                   <BookCard
+                    id = {book.id}
                     key={book.id}
                     title={book.name}
                     author={book.author}
@@ -98,6 +99,7 @@ function Featured() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10 justify-items-center">
                 {popularBooks.map((book) => (
                   <BookCard
+                    id={book.id}
                     key={book.id}
                     title={book.name}
                     author={book.author}

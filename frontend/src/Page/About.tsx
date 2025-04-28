@@ -4,7 +4,7 @@ const AboutPage = () => {
     return (
         <div>
             <AboutHeader />
-            <section className="text-center mx-[20%]">
+            <section className="max-w-4xl mx-auto">
                 <div className="text-5xl font-bold my-4">Welcome to Bookworm</div>
 
                 <p className="leading-[1.6] mb-4 text-left">

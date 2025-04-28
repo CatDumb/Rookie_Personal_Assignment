@@ -3,7 +3,9 @@ from app.core.db_config import get_db
 from app.db.author import Author
 from app.db.book import Book
 from app.db.bookstats import BookStats
+from app.db.category import Category  # Add this import
 from app.db.discount import Discount
+from app.schema.book import BookDetail  # Add this import
 from app.schema.book import (
     BookDetailResponse,
     BookFilterRequest,
@@ -208,6 +210,58 @@ async def get_popular_books(db: Session = Depends(get_db)):
 
 
 @router.get("/{book_id}", response_model=BookDetailResponse)
-def get_book_by_id(book_id: int):
+async def get_book_by_id(book_id: int, db: Session = Depends(get_db)):
     """Get book by ID"""
-    return {"book": ["name", "page"]}
+    try:
+        # Query books with associations
+        book_data = (
+            db.query(Book, Category, Author)
+            .join(Category, Book.category_id == Category.id)
+            .join(Author, Book.author_id == Author.id)
+            .filter(Book.id == book_id)
+            .first()
+        )
+
+        if not book_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Book with id {book_id} not found",
+            )
+
+        book, category, author = book_data
+
+        # Get any active discount
+        discount = (
+            db.query(Discount)
+            .filter(
+                Discount.book_id == book_id,
+                Discount.discount_start_date <= func.current_date(),
+                Discount.discount_end_date >= func.current_date(),
+            )
+            .first()
+        )
+
+        # Get book stats
+        stats = db.query(BookStats).filter(BookStats.id == book_id).first()
+
+        return BookDetailResponse(
+            book=BookDetail(
+                id=book.id,
+                name=book.book_title,
+                author=author.author_name,
+                price=float(book.book_price),
+                discount_price=float(discount.discount_price) if discount else None,
+                cover_photo=book.book_cover_photo,
+                summary=book.book_summary,
+                average_rating=float(stats.avg_rating) if stats else 0,
+                review_count=stats.review_count if stats else 0,
+                category=category.category_name,
+            ),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred: {str(e)}",
+        )

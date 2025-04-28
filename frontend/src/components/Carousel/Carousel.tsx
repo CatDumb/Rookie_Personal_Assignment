@@ -79,6 +79,7 @@ const CarouselBar = () => {
                                 >
                                     <div className="flex items-center justify-center p-1">
                                         <BookCard
+                                            id={book.id}
                                             title={book.name}
                                             author={book.author}
                                             price={book.price}
