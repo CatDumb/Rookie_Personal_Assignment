@@ -14,7 +14,7 @@ export interface ReviewRequest {
   book_id: number;
   review_title: string;
   rating_star: number;
-  review_details: string;
+  review_details?: string; // Make review_details optional
 }
 
 export function postReview(review: ReviewRequest) {

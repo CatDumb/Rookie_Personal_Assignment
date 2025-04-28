@@ -23,11 +23,9 @@ const FormSchema = z.object({
   }).max(100, {
     message: "Title cannot exceed 100 characters.",
   }),
-  review_details: z.string().min(10, {
-    message: "Review must be at least 10 characters.",
-  }).max(1000, {
+  review_details: z.string().max(1000, {
     message: "Review cannot exceed 1000 characters.",
-  }),
+  }).optional(),
   rating_star: z.number().min(1, {
     message: "Please select a rating.",
   }).max(5)
@@ -56,14 +54,14 @@ export function ReviewForm({ book_id }: ReviewFormProps) {
     form.setValue("rating_star", newRating);
   };
 
-    async function onSubmit(data: z.infer<typeof FormSchema>) {
+  async function onSubmit(data: z.infer<typeof FormSchema>) {
     setIsSubmitting(true);
     try {
       // Ensure we only send the expected fields in the correct format
       const reviewData = {
         book_id: book_id,
         review_title: data.review_title,
-        review_details: data.review_details,
+        review_details: data.review_details || "", // Use empty string as fallback
         rating_star: Math.round(data.rating_star),
         // Include current date in ISO format
         review_date: new Date().toISOString()
@@ -111,6 +109,7 @@ export function ReviewForm({ book_id }: ReviewFormProps) {
                   <Textarea
                     className="min-h-[80px]"
                     {...field}
+                    value={field.value || ''}
                   />
                 </FormControl>
                 <FormMessage />
