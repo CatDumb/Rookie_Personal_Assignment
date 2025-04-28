@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { getBookDetails } from '../api/book';
 import { BookHeader } from '../components/Header/BookHeader';
 import { Button } from '../components/ui/button';
-import { ReviewForm } from '../components/ui/ReviewForm';
+import { ReviewForm } from '../components/ui/reviewForm';
 
 interface BookDetailsData {
   id: number;
@@ -136,7 +136,7 @@ const BookDetails = () => {
       <div className="flex flex-col lg:flex-row gap-4 lg:justify-between pt-4">
         <div className="w-full lg:w-[68%] text-xl font-bold mb-4">Reviews section</div>
         <div className='w-full lg:w-[30%]'>
-          <ReviewForm bookId={parseInt(id || '0')} />
+          <ReviewForm book_id={parseInt(id || '0')} />
         </div>
       </div>
     </div>

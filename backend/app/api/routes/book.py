@@ -33,7 +33,11 @@ def list_books(filters: BookFilterRequest = BookFilterRequest()):
     return {"message": "Paginated list of books"}
 
 
-@router.get("/on_sale", response_model=BooksOnSaleResponse)
+@router.get(
+    "/on_sale",
+    status_code=status.HTTP_200_OK,
+    response_model=BooksOnSaleResponse,
+)
 async def get_books_on_sale(db: Session = Depends(get_db)):
     """Return top 10 books with the highest discount amount"""
     try:
@@ -158,7 +162,11 @@ async def get_recommended_books(db: Session = Depends(get_db)):
         )
 
 
-@router.get("/featured/popular", response_model=PopularBooksResponse)
+@router.get(
+    "/featured/popular",
+    status_code=status.HTTP_200_OK,
+    response_model=PopularBooksResponse,
+)
 async def get_popular_books(db: Session = Depends(get_db)):
     """Return top 8 popular books based on highest numbers of review and lowest price"""
     try:
@@ -209,7 +217,11 @@ async def get_popular_books(db: Session = Depends(get_db)):
         )
 
 
-@router.get("/{book_id}", response_model=BookDetailResponse)
+@router.get(
+    "/{book_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=BookDetailResponse,
+)
 async def get_book_by_id(book_id: int, db: Session = Depends(get_db)):
     """Get book by ID"""
     try:

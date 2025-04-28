@@ -15,36 +15,37 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useState } from "react"
+import { postReview } from "../../api/review"
 
 const FormSchema = z.object({
-  title: z.string().min(2, {
+  review_title: z.string().min(2, {
     message: "Title must be at least 2 characters.",
   }).max(100, {
     message: "Title cannot exceed 100 characters.",
   }),
-  content: z.string().min(10, {
+  review_details: z.string().min(10, {
     message: "Review must be at least 10 characters.",
   }).max(1000, {
     message: "Review cannot exceed 1000 characters.",
   }),
-  rating: z.number().min(1, {
+  rating_star: z.number().min(1, {
     message: "Please select a rating.",
   }).max(5)
 })
 
 interface ReviewFormProps {
-  bookId: number;
+  book_id: number;
 }
 
-export function ReviewForm({ bookId }: ReviewFormProps) {
+export function ReviewForm({ book_id }: ReviewFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      title: "",
-      content: "",
-      rating: 0
+      review_title: "",
+      review_details: "",
+      rating_star: 0
     },
   })
 
@@ -52,24 +53,24 @@ export function ReviewForm({ bookId }: ReviewFormProps) {
   const handleRatingChange = (value: number) => {
     // Keep rating between 1 and 5
     const newRating = Math.min(Math.max(value, 1), 5);
-    form.setValue("rating", newRating);
+    form.setValue("rating_star", newRating);
   };
 
-  async function onSubmit(data: z.infer<typeof FormSchema>) {
+    async function onSubmit(data: z.infer<typeof FormSchema>) {
     setIsSubmitting(true);
     try {
-      // Ensure rating is an integer
+      // Ensure we only send the expected fields in the correct format
       const reviewData = {
-        ...data,
-        rating: Math.round(data.rating),
-        bookId
+        book_id: book_id,
+        review_title: data.review_title,
+        review_details: data.review_details,
+        rating_star: Math.round(data.rating_star),
+        // Include current date in ISO format
+        review_date: new Date().toISOString()
       };
 
       console.log("Review data:", reviewData);
-      // Here you would call your API to submit the review
-      // Example: await submitReview(reviewData);
-
-      // Reset form after successful submission
+      await postReview(reviewData);
       form.reset();
       alert("Review submitted successfully!");
     } catch (error) {
@@ -79,7 +80,6 @@ export function ReviewForm({ bookId }: ReviewFormProps) {
       setIsSubmitting(false);
     }
   }
-
   return (
     <div className="border border-gray-300 rounded-lg p-4">
       <div className="font-bold text-xl mb-4 ">Write a Review</div>
@@ -89,7 +89,7 @@ export function ReviewForm({ bookId }: ReviewFormProps) {
 
           <FormField
             control={form.control}
-            name="title"
+            name="review_title"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Add a Title</FormLabel>
@@ -103,7 +103,7 @@ export function ReviewForm({ bookId }: ReviewFormProps) {
 
           <FormField
             control={form.control}
-            name="content"
+            name="review_details"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Details please! Your review helps other shoppers</FormLabel>
@@ -120,7 +120,7 @@ export function ReviewForm({ bookId }: ReviewFormProps) {
 
           <FormField
             control={form.control}
-            name="rating"
+            name="rating_star"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Select a rating star</FormLabel>

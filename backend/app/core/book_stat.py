@@ -1,9 +1,9 @@
 from typing import List
 
-from app.db import BookStats, Review
-from sqlalchemy import func, text
+from app.db import BookStats
+from app.schema.review import ReviewRequest
+from sqlalchemy import text
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import exists
 
 
 async def update_book_stats(db: Session, book_ids: List[int]):
@@ -71,48 +71,26 @@ async def update_book_stats(db: Session, book_ids: List[int]):
         raise Exception(f"Failed to update book stats: {str(e)}")
 
 
-async def refresh_review_stats(db: Session, book_id: int) -> None:
-    """
-    Refresh review statistics (average rating and review count) for a specific book.
-    Should be called whenever a new review is added or an existing review is updated.
-
-    Args:
-        db: Database session
-        book_id: Book ID to update statistics for
-    """
-    # Calculate current review stats
-    avg_rating = (
-        db.query(func.avg(Review.rating_star))
-        .filter(Review.book_id == book_id)
-        .scalar()
-        or 0
+async def refresh_review_stats(db: Session, review: ReviewRequest) -> None:
+    """Update the review statistics for a book. Called whenever a new review is added."""
+    book_id = review.book_id
+    stats = (
+        db.query(BookStats.review_count, BookStats.total_star)
+        .filter(BookStats.id == book_id)
+        .first()
     )
+    review_count, total_star = stats if stats else (0, 0)
 
-    review_count = (
-        db.query(func.count(Review.id)).filter(Review.book_id == book_id).scalar() or 0
+    review_count += 1
+    total_star += review.rating_star
+    avg_rating = total_star / review_count
+
+    db.query(BookStats).filter(BookStats.id == book_id).update(
+        {
+            BookStats.review_count: review_count,
+            BookStats.total_star: total_star,
+            BookStats.avg_rating: avg_rating,
+        },
     )
-
-    # Check if stats entry exists
-    stats_exists = db.query(
-        exists().where(BookStats.id == book_id),
-    ).scalar()
-
-    if stats_exists:
-        # Update existing stats
-        db.query(BookStats).filter(BookStats.id == book_id).update(
-            {
-                BookStats.avg_rating: avg_rating,
-                BookStats.review_count: review_count,
-            },
-        )
-    else:
-        # Create new stats record
-        new_stats = BookStats(
-            id=book_id,
-            view_count=0,
-            avg_rating=avg_rating,
-            review_count=review_count,
-        )
-        db.add(new_stats)
 
     db.commit()
