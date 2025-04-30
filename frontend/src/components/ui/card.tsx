@@ -88,7 +88,6 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 CardFooter.displayName = "CardFooter";
 
 // BookCard component
-// BookCard component
 interface BookCardProps extends Omit<React.ComponentProps<"div">, "id"> {
   id: number;
   title: string;
@@ -99,29 +98,38 @@ interface BookCardProps extends Omit<React.ComponentProps<"div">, "id"> {
   onSale?: boolean;
 }
 
-
-// Update the BookCard component to wrap it in a Link
+// Update the BookCard component to correctly handle prices
 const BookCard = React.forwardRef<HTMLDivElement, BookCardProps>(
   ({ title, author, price, originalPrice, imageUrl, id, className, ...props }, ref) => {
+    const defaultImage = "/book.png";
+
+    // Determine which is the display price and which is the strikethrough price
+    const displayPrice = originalPrice || price; // If originalPrice exists, it's the discounted price (to display)
+    const strikethroughPrice = originalPrice ? price : undefined; // If original price exists, strike through the regular price
+
     return (
-      <Link to={`/book/${id}`} className="block w-full lg:w-64 no-underline text-inherit">
+      <Link to={`/book/${id}`} className="block w-full no-underline text-inherit">
         <Card ref={ref} className={cn("overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-shadow border-0", className)} {...props}>
-          <CardContent className="relative p-0 aspect-[3/4] h-64 lg:h-64">
+          {/* Image Container - Added overflow-hidden and fixed aspect ratio */}
+          <CardContent className="relative p-0 aspect-[3/4] h-64 lg:h-64 overflow-hidden bg-gray-100">
             <img
-              src={imageUrl}
+              src={imageUrl || defaultImage}
               alt={title}
-              className="object-cover w-full h-full"
-              onError={(e) => {e.currentTarget.src = "/book.png"}}
+              className="object-contain w-full h-full p-2" // Changed to object-contain and added padding
+              onError={(e) => { e.currentTarget.src = defaultImage }}
+              loading="lazy"
             />
           </CardContent>
+
+          {/* Rest of the card content */}
           <CardContent className="p-2 lg:p-3 border-t border-gray-200">
             <CardTitle className="font-semibold text-lg truncate">{title}</CardTitle>
             <CardDescription className="text-sm text-gray-600 truncate">{author}</CardDescription>
           </CardContent>
           <CardFooter className="pl-2 pb-4 border-t border-gray-100 bg-gray-200">
             <div className="flex items-center gap-2">
-              {originalPrice && <span className="text-sm line-through">${originalPrice}</span>}
-              <span className="text-black font-bold">${price}</span>
+              {strikethroughPrice && <span className="text-sm line-through">${strikethroughPrice}</span>}
+              <span className="text-black font-bold">${displayPrice}</span>
             </div>
           </CardFooter>
         </Card>

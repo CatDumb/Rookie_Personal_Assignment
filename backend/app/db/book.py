@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import BigInteger, Numeric
 from sqlmodel import Field
 
@@ -18,4 +20,4 @@ class Book(Base, table=True):
     book_title: str = Field(default=None, max_length=255)
     book_summary: str = Field(default=None)
     book_price: float = Field(default=None, sa_type=Numeric(5, 2))
-    book_cover_photo: str = Field(default=None, max_length=20)
+    book_cover_photo: Optional[str] = Field(default=None, max_length=40)

@@ -161,7 +161,14 @@ with Session(engine) as session:
     for _ in range(100):
         title = faker.sentence(nb_words=4).rstrip(".")
         price = round(random.uniform(5, 100), 2)
-        photo = faker.file_name(extension="jpg")[:20]
+
+        # Always provide a default value for cover photos instead of NULL
+        # This ensures consistency and prevents validation errors
+        if random.random() < 0.15:
+            photo = "/book.png"  # Use default image instead of NULL
+        else:
+            photo = faker.image_url()  # Generate a random image URL
+
         b = Book(
             category_id=random.choice(categories).id,
             author_id=random.choice(authors).id,
@@ -174,17 +181,59 @@ with Session(engine) as session:
         books.append(b)
     session.commit()
 
-    # Discounts (for ~30% of books)
-    for book in random.sample(books, k=int(len(books) * 0.3)):
+    # Current Discounts (for ~20% of books)
+    current_discount_books = random.sample(books, k=int(len(books) * 0.2))
+    for book in current_discount_books:
         start = faker.date_between(start_date="-30d", end_date="today")
         end = start + timedelta(days=random.randint(5, 30))
+        # Ensure discount price is lower than the original price
+        discount_factor = random.uniform(0.5, 0.9)  # 50-90% of original price
+        discount_price = round(book.book_price * discount_factor, 2)
+
+        # Explicit check to ensure discount price is always less than book price
+        if discount_price >= book.book_price:
+            discount_price = round(
+                book.book_price * 0.8,
+                2,
+            )  # Force a 20% discount if calculation was wrong
+
         d = Discount(
             book_id=book.id,
             discount_start_date=start,
             discount_end_date=end,
-            discount_price=round(book.book_price * random.uniform(0.5, 0.9), 2),
+            discount_price=discount_price,
         )
         session.add(d)
+
+    # Historical/Expired Discounts (for ~10% of books)
+    # Make sure to exclude books that already have current discounts
+    remaining_books = [b for b in books if b not in current_discount_books]
+    historical_discount_books = random.sample(remaining_books, k=int(len(books) * 0.1))
+
+    for book in historical_discount_books:
+        # Create discounts that have already ended
+        start = faker.date_between(start_date="-90d", end_date="-60d")
+        end = faker.date_between(start_date=start, end_date="-30d")
+
+        # Ensure discount price is lower than the original price
+        discount_factor = random.uniform(0.6, 0.85)  # 60-85% of original price
+        discount_price = round(book.book_price * discount_factor, 2)
+
+        # Explicit check to ensure discount price is always less than book price
+        if discount_price >= book.book_price:
+            discount_price = round(
+                book.book_price * 0.75,
+                2,
+            )  # Force a 25% discount if calculation was wrong
+
+        d = Discount(
+            book_id=book.id,
+            discount_start_date=start,
+            discount_end_date=end,
+            discount_price=discount_price,
+        )
+        session.add(d)
+
     session.commit()
 
     # Orders & OrderItems

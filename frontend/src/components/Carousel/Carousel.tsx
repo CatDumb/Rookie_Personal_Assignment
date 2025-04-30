@@ -83,8 +83,8 @@ const CarouselBar = () => {
                                             title={book.name}
                                             author={book.author}
                                             price={book.price}
-                                            originalPrice={book.discount_price || undefined}
-                                            imageUrl={book.cover_photo}
+                                            originalPrice={book.discount_price ?? undefined}
+                                            imageUrl={book.cover_photo ?? ""}
                                         />
                                     </div>
                                 </CarouselItem>

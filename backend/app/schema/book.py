@@ -1,6 +1,14 @@
+from enum import Enum
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
+
+
+class ValidPerPage(int, Enum):
+    SMALL = 5
+    MEDIUM = 15
+    LARGE = 20
+    XLARGE = 25
 
 
 class BookBase(BaseModel):
@@ -10,14 +18,14 @@ class BookBase(BaseModel):
     name: str
     author: str
     price: float
-    cover_photo: str
+    cover_photo: Optional[str] = None  # Make cover_photo optional to handle null values
 
 
 class DiscountedBook(BookBase):
     """Model for books with active discounts"""
 
     discount_price: Optional[float] = None
-    discount_amount: float
+    discount_amount: Optional[float] = None
 
 
 class RatedBook(BookBase):
@@ -43,7 +51,7 @@ class BookDetail(BaseModel):
     author: str
     price: float
     discount_price: Optional[float] = None
-    cover_photo: str
+    cover_photo: Optional[str] = None  # Make cover_photo optional
     summary: str
     average_rating: float
     review_count: int
@@ -55,13 +63,23 @@ class BookFilterRequest(BaseModel):
     """Request model for filtering books"""
 
     page: int = 1
-    per_page: int = 10
+    per_page: ValidPerPage = ValidPerPage.MEDIUM  # Default to 15
     category_id: Optional[int] = None
-    price_min: Optional[float] = None
-    price_max: Optional[float] = None
+    author_id: Optional[int] = None
     rating_min: Optional[float] = None
-    sort_by: str = "name"  # Options: name, price, rating
-    sort_direction: str = "asc"  # Options: asc, desc
+    sort_by: str = "none"
+
+    # Add validators if needed
+    @validator("page")
+    def validate_page(cls, v):
+        if v < 1:
+            return 1
+        return v
+
+    # No need for per_page validator as enum will handle it
+
+    class Config:
+        use_enum_values = True  # This ensures the enum int value is used
 
 
 # Response models for book listing endpoints
@@ -92,7 +110,7 @@ class BookDetailResponse(BaseModel):
 class PaginatedBooksResponse(BaseModel):
     """Paginated response model for book listings"""
 
-    items: List[BookBase]
+    items: List[DiscountedBook]
     total: int
     page: int
     per_page: int

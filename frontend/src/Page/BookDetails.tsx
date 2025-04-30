@@ -24,7 +24,7 @@ interface BookDetailsData {
   author: string;
   price: number;
   discount_price: number | null;
-  cover_photo: string;
+  cover_photo: string | null;  // Updated to allow null values
   summary: string;
   average_rating: number;
   review_count: number;
@@ -190,8 +190,10 @@ const BookDetails = () => {
           <div className="w-full lg:w-[30%] border border-gray-400 rounded-lg flex flex-col relative mt-4 lg:mt-0 lg:h-fit">
             {/* Price Display */}
             <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-200 rounded-t-lg">
-              {book.price && <span className="text-md line-through">${book.price}</span>}
-              <span className="text-2xl text-black font-bold break-words">${book.discount_price}</span>
+              {book.discount_price && <span className="text-md line-through">${book.price}</span>}
+              <span className="text-2xl text-black font-bold break-words">
+                ${book.discount_price || book.price}
+              </span>
             </div>
             {/* Quantity Selection and Add to Cart */}
             <div className='flex flex-col gap-4 p-4'>

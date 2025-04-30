@@ -27,10 +27,117 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=PaginatedBooksResponse)
-def list_books(filters: BookFilterRequest = BookFilterRequest()):
-    """Paginated list of books"""
-    return {"message": "Paginated list of books"}
+@router.get("/", response_model=PaginatedBooksResponse)
+async def list_books(
+    filters: BookFilterRequest = Depends(),
+    db: Session = Depends(get_db),
+):
+    """Paginated list of books with filtering and sorting options"""
+    try:
+        # Start with base query joining necessary tables
+        query = (
+            db.query(Book, Author, Discount, Category)
+            .join(Author, Book.author_id == Author.id)
+            .join(Category, Book.category_id == Category.id)
+            .outerjoin(
+                Discount,
+                (Book.id == Discount.book_id)
+                & (Discount.discount_start_date <= func.current_date())
+                & (Discount.discount_end_date >= func.current_date()),
+            )
+            .join(BookStats, Book.id == BookStats.id, isouter=True)
+        )
+
+        # Apply category filter if provided
+        if filters.category_id is not None:
+            query = query.filter(Book.category_id == filters.category_id)
+
+        # Apply minimum rating filter if provided
+        if filters.rating_min is not None:
+            query = query.filter(BookStats.avg_rating >= filters.rating_min)
+
+        # Apply sorting based on sort_by parameter
+        if filters.sort_by == "onsale":
+            # Sort by discount amount (highest first), without excluding non-discounted items
+            # For books without discount, discount amount is 0
+            query = query.order_by(
+                func.coalesce(Book.book_price - Discount.discount_price, 0).desc(),
+                Book.book_title.asc(),  # Secondary sort by title for items with same discount
+            )
+        elif filters.sort_by == "popularity":
+            # Sort by review count (highest first)
+            query = query.order_by(
+                func.coalesce(BookStats.review_count, 0).desc(),
+                Book.book_title.asc(),  # Secondary sort for books with same review count
+            )
+        elif filters.sort_by == "price_asc":
+            # Sort by lowest price first using BookStats.lowest_price
+            query = query.order_by(
+                BookStats.lowest_price.asc(),
+                Book.book_title.asc(),  # Secondary sort for books with same price
+            )
+        elif filters.sort_by == "price_desc":
+            # Sort by highest price first using BookStats.lowest_price
+            query = query.order_by(
+                BookStats.lowest_price.desc(),
+                Book.book_title.asc(),  # Secondary sort for books with same price
+            )
+        else:
+            # Default sorting by name
+            query = query.order_by(Book.book_title.asc())
+
+        # Calculate pagination values
+        total_items = query.count()
+        total_pages = (total_items + filters.per_page - 1) // filters.per_page
+
+        # Apply pagination
+        query = query.offset((filters.page - 1) * filters.per_page).limit(
+            filters.per_page,
+        )
+
+        # Execute query
+        result = query.all()
+
+        # Format the results
+        books = []
+        book_ids = []  # Store book IDs for updating stats
+        for book, author, discount, _ in result:
+            books.append(
+                DiscountedBook(
+                    id=book.id,
+                    name=book.book_title,
+                    author=author.author_name,
+                    price=book.book_price,
+                    discount_price=discount.discount_price if discount else None,
+                    cover_photo=book.book_cover_photo,
+                    discount_amount=(book.book_price - discount.discount_price)
+                    if discount
+                    else 0,
+                ),
+            )
+            book_ids.append(book.id)
+
+        # Return paginated response
+        response = PaginatedBooksResponse(
+            items=books,
+            total=total_items,
+            page=filters.page,
+            per_page=filters.per_page,
+            pages=total_pages,
+        )
+
+        # Update book stats asynchronously (without awaiting to improve response time)
+        await update_book_stats(db, book_ids)
+
+        return response
+
+    except Exception as e:
+        # Rollback transaction in case of error
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred: {str(e)}",
+        )
 
 
 @router.get(
