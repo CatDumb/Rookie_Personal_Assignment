@@ -1,5 +1,3 @@
-import './Header.css';
-
 interface FilterState {
   categories: number[];
   authors: number[];
@@ -19,7 +17,7 @@ export const ShopHeader = ({ activeFilters }: ShopHeaderProps) => {
 
     return (
         <div className="header">
-            <div className="header-text">
+            <div className="font-bold my-4 text-2xl">
                 <div className="flex items-center gap-3">
                     <h3>Book</h3>
                     {hasFilters && (
@@ -41,7 +39,7 @@ export const ShopHeader = ({ activeFilters }: ShopHeaderProps) => {
                     )}
                 </div>
             </div>
-            <hr className="header-divider" />
+            <hr></hr>
         </div>
     );
 };

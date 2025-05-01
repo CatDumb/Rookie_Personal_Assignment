@@ -111,49 +111,49 @@ const ShopPage = () => {
         </div>
         <div className="hidden md:block md:w-[20px] md:min-w-[20px] md:max-w-[20px] flex-shrink-0"></div>
         <div className="flex-grow">
-          <div className="w-full flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <div>
-                <p className="text-sm">
-                  Showing {itemsPerPage * (currentPage - 1) + 1}-{Math.min(itemsPerPage * currentPage, totalBooks)} of {totalBooks} books
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <select
-                  className="border p-2 rounded w-full sm:w-auto"
-                  value={itemsPerPage}
-                  onChange={(e) => handlePerPageChange(Number(e.target.value) as ValidPerPage)}
-                >
-                  {VALID_PER_PAGE_OPTIONS.map(option => (
-                    <option key={option} value={option}>
-                      {option} per page
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="border p-2 rounded w-full sm:w-auto"
-                  onChange={handleSortChange}
-                  value={sortOption}
-                >
-                  <option value="onsale">On Sale</option>
-                  <option value="popularity">Popularity</option>
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
-                </select>
+          <div className="w-full">
+            <div className="w-full flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                  <p className="text-sm">
+                    Showing {itemsPerPage * (currentPage - 1) + 1}-{Math.min(itemsPerPage * currentPage, totalBooks)} of {totalBooks} books
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <select
+                    className="border p-2 rounded w-full sm:w-auto"
+                    value={itemsPerPage}
+                    onChange={(e) => handlePerPageChange(Number(e.target.value) as ValidPerPage)}
+                  >
+                    {VALID_PER_PAGE_OPTIONS.map(option => (
+                      <option key={option} value={option}>
+                        {option} per page
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="border p-2 rounded w-full sm:w-auto"
+                    onChange={handleSortChange}
+                    value={sortOption}
+                  >
+                    <option value="onsale">On Sale</option>
+                    <option value="popularity">Popularity</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
 
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <p>Loading books...</p>
-            </div>
-          ) : error ? (
-            <div className="flex justify-center items-center h-64 text-red-500">
-              <p>{error}</p>
-            </div>
-          ) : (
-            <>
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <p>Loading books...</p>
+              </div>
+            ) : error ? (
+              <div className="flex justify-center items-center h-64 text-red-500">
+                <p>{error}</p>
+              </div>
+            ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 justify-items-center mt-6">
                 {books.map((book) => (
                   <BookCard
@@ -173,14 +173,18 @@ const ShopPage = () => {
                   </div>
                 )}
               </div>
+            )}
+          </div>
 
-              {/* Use the ShopPagination component */}
+          {/* Pagination with reduced top spacing */}
+          {!loading && !error && books.length > 0 && (
+            <div className="-mt-1">
               <ShopPagination
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
               />
-            </>
+            </div>
           )}
         </div>
       </div>

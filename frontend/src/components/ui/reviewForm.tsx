@@ -79,7 +79,7 @@ export function ReviewForm({ book_id }: ReviewFormProps) {
     }
   }
   return (
-    <div className="border border-gray-300 rounded-lg p-4">
+    <div className="border-2 border-gray-400 rounded-lg p-4">
       <div className="font-bold text-xl mb-4 ">Write a Review</div>
       <div className="h-px bg-gray-300 -mx-4 mb-4"></div>
       <Form {...form}>

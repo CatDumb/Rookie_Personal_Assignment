@@ -1,7 +1,7 @@
 // src/Page/BookDetails.tsx
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getBookDetails } from '../api/book';
+import { getBookDetails, BookDetailResponse } from '../api/book';
 import { BookHeader } from '../components/Header/BookHeader';
 import { Button } from '../components/ui/button';
 import { ReviewForm } from '../components/ui/reviewForm';
@@ -18,19 +18,6 @@ import { Pagination,
  } from '@/components/ui/pagination';
 
 // ----- TYPES & INTERFACES -----
-interface BookDetailsData {
-  id: number;
-  name: string;
-  author: string;
-  price: number;
-  discount_price: number | null;
-  cover_photo: string | null;  // Updated to allow null values
-  summary: string;
-  average_rating: number;
-  review_count: number;
-  category: string;
-}
-
 interface Review {
   id: number;
   title: string;
@@ -41,19 +28,19 @@ interface Review {
 }
 
 const BookDetails = () => {
-  // ----- STATE MANAGEMENT -----
+  /* STATE */
   const { id } = useParams<{ id: string }>();
-  const [book, setBook] = useState<BookDetailsData | null>(null);
+  const [book, setBook] = useState<BookDetailResponse['book'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [quantity, setQuantity] = useState(1);
 
-  // Pagination state
+  /* PAGINATION */
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(3);
   const [reviews, setReviews] = useState<Review[]>([]);
 
-  // ----- EVENT HANDLERS -----
+  /* EVENT HANDLERS */
   const decrementQuantity = () => {
     setQuantity(prev => (prev > 1 ? prev - 1 : 1));
   };
@@ -66,7 +53,7 @@ const BookDetails = () => {
     setCurrentPage(page);
   };
 
-  // ----- DATA FETCHING -----
+  /* DATA FETCHING */
   useEffect(() => {
     if (!id) return;
 
@@ -78,7 +65,6 @@ const BookDetails = () => {
         setBook(data.book);
         setLoading(false);
 
-        // Create dummy reviews based on the book's review count
         const dummyReviews = generateDummyReviews(data.book.review_count || 12);
         setReviews(dummyReviews);
       })
@@ -89,7 +75,7 @@ const BookDetails = () => {
       });
   }, [id]);
 
-  // Generate dummy reviews
+  /* UTILITY FUNCTIONS */
   const generateDummyReviews = (count: number): Review[] => {
     const dummyReviews: Review[] = [];
     const reviewContents = [
@@ -112,7 +98,7 @@ const BookDetails = () => {
       const randomContent = reviewContents[i % reviewContents.length];
       const randomName = names[i % names.length];
       const randomDate = new Date();
-      randomDate.setDate(randomDate.getDate() - (i * 3)); // Different dates going backward
+      randomDate.setDate(randomDate.getDate() - (i * 3));
 
       dummyReviews.push({
         id: i,
@@ -127,13 +113,13 @@ const BookDetails = () => {
     return dummyReviews;
   };
 
-  // Calculate pagination
+  /* PAGINATION CALCULATIONS */
   const totalPages = Math.ceil(reviews.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentReviews = reviews.slice(indexOfFirstItem, indexOfLastItem);
 
-  // ----- CONDITIONAL RENDERING -----
+  /* LOADING STATES */
   if (loading) {
     return <div className="text-center py-20">Loading book details...</div>;
   }
@@ -146,93 +132,96 @@ const BookDetails = () => {
     return <div className="text-center py-20">Book not found</div>;
   }
 
-  // ----- MAIN RENDER -----
   return (
     <div>
-      {/* ----- BOOK INFORMATION SECTION ----- */}
-      <div>
-        <BookHeader text={book.category} />
-        <div className="flex flex-col lg:flex-row gap-4 lg:justify-between">
-          {/* Book Details Card */}
-          <div className="w-full lg:w-[68%] border border-gray-400 rounded-lg flex flex-col relative p-4">
-            <div className='flex flex-col md:flex-row gap-6'>
-              {/* Book Cover and Author */}
-              <div className='w-full md:w-[30%] flex flex-col'>
-                <div className="max-w-[300px] mx-auto md:mx-0">
-                  {book.cover_photo ? (
-                    <img
-                      src={book.cover_photo}
-                      alt={book.name}
-                      className="w-full h-auto object-cover rounded"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = "/book.png";
-                      }}
-                    />
-                  ) : (
-                    <img src="/book.png" alt="Default book cover" className="w-full h-auto rounded" />
-                  )}
-                </div>
-                <div className='text-right mt-2'>
-                  <span className='font-light'>By (author) <span className='font-bold'>{book.author}</span></span>
-                </div>
-              </div>
+      {/* HEADER AND CATEGORY */}
+      <BookHeader text={book.category} />
 
-              {/* Book Title and Summary */}
-              <div className='w-full md:w-[50%] mt-4 md:mt-0'>
-                <p className='font-bold text-xl md:text-2xl mb-3'>{book.name}</p>
-                <p className='text-left'>{book.summary}</p>
+      {/* MAIN CONTENT AREA */}
+      <div className="flex flex-col lg:flex-row gap-4 lg:justify-between">
+        {/* BOOK DETAILS SECTION */}
+        <div className="w-full lg:w-[68%] border-2 border-gray-400 rounded-lg flex flex-col relative p-4">
+          <div className='flex flex-col md:flex-row gap-6'>
+            {/* BOOK COVER */}
+            <div className='w-full md:w-[30%] flex flex-col'>
+              <div className="max-w-[300px] mx-auto md:mx-0">
+                {book.cover_photo ? (
+                  <img
+                    src={book.cover_photo}
+                    alt={book.name}
+                    className="w-full h-auto object-cover rounded"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = "/book.png";
+                    }}
+                  />
+                ) : (
+                  <img src="/book.png" alt="Default book cover" className="w-full h-auto rounded" />
+                )}
               </div>
+              <div className='text-right mt-2'>
+                <span className='font-light'>By (author) <span className='font-bold'>{book.author}</span></span>
+              </div>
+            </div>
+
+            {/* BOOK INFO */}
+            <div className='w-full md:w-[50%] mt-4 md:mt-0'>
+              <p className='font-bold text-xl md:text-2xl mb-3'>{book.name}</p>
+              <p className='text-left'>{book.summary}</p>
             </div>
           </div>
+        </div>
 
-          {/* ----- PURCHASE SECTION ----- */}
-          <div className="w-full lg:w-[30%] border border-gray-400 rounded-lg flex flex-col relative mt-4 lg:mt-0 lg:h-fit">
-            {/* Price Display */}
-            <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-200 rounded-t-lg">
-              {book.discount_price && <span className="text-md line-through">${book.price}</span>}
-              <span className="text-2xl text-black font-bold break-words">
-                ${book.discount_price || book.price}
-              </span>
-            </div>
-            {/* Quantity Selection and Add to Cart */}
-            <div className='flex flex-col gap-4 p-4'>
-              <div>
-                <label className="block mb-2">Quantity</label>
-                <div className="flex items-center border border-gray-300 rounded">
-                  <button
-                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border-r border-gray-300"
-                    onClick={decrementQuantity}
-                  >
-                    -
-                  </button>
-                  <input
-                    type="text"
-                    className="w-full p-2 text-center outline-none"
-                    value={quantity}
-                    readOnly
-                  />
-                  <button
-                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border-l border-gray-300"
-                    onClick={incrementQuantity}
-                  >
-                    +
-                  </button>
-                </div>
+        {/* PURCHASE BOX */}
+        <div className="w-full lg:w-[30%] border-2 border-gray-400 rounded-lg flex flex-col relative mt-4 lg:mt-0 lg:h-fit">
+          {/* PRICE DISPLAY */}
+          <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-200 rounded-t-lg">
+            {book.discount_price && <span className="text-md line-through">${book.price}</span>}
+            <span className="text-2xl text-black font-bold break-words">
+              ${book.discount_price || book.price}
+            </span>
+          </div>
+
+          {/* QUANTITY SELECTOR */}
+          <div className='flex flex-col gap-4 p-4'>
+            <div>
+              <label className="block mb-2">Quantity</label>
+              <div className="flex items-center border border-gray-300 rounded">
+                <button
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border-r border-gray-300"
+                  onClick={decrementQuantity}
+                >
+                  -
+                </button>
+                <input
+                  type="text"
+                  className="w-full p-2 text-center outline-none"
+                  value={quantity}
+                  readOnly
+                />
+                <button
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border-l border-gray-300"
+                  onClick={incrementQuantity}
+                >
+                  +
+                </button>
               </div>
-              <Button className="w-full">Add to cart</Button>
             </div>
+            <Button className="w-full">Add to cart</Button>
           </div>
         </div>
       </div>
 
-      {/* ----- REVIEWS SECTION ----- */}
+      {/* REVIEWS SECTION */}
       <div className="flex flex-col lg:flex-row gap-4 lg:justify-between pt-4">
-        <div className="w-full lg:w-[68%] px-3 py-2 bg-gray-100 text-gray-700 border-l border-gray-300 rounded-lg">
+        {/* REVIEWS LIST */}
+        <div className="w-full lg:w-[68%] border-2 border-gray-400 rounded-lg">
           <div className='flex flex-col gap-4 px-4 py-8'>
             <div className='font-bold text-2xl'>
               Customer Reviews
             </div>
+
+            {/* RATING SUMMARY */}
             <div className='font-bold text-2xl flex items-center gap-2'>
               <span>{book.average_rating}</span>
               <div className="flex">
@@ -246,7 +235,7 @@ const BookDetails = () => {
               <span className="text-base font-normal ml-2">({reviews.length} reviews)</span>
             </div>
 
-            {/* Review Items */}
+            {/* REVIEW ITEMS */}
             <div className="mt-4">
               {currentReviews.length > 0 ? (
                 currentReviews.map(review => (
@@ -264,7 +253,7 @@ const BookDetails = () => {
               )}
             </div>
 
-            {/* Pagination */}
+            {/* PAGINATION CONTROLS */}
             {totalPages > 1 && (
               <Pagination className="mt-6">
                 <PaginationContent>
@@ -275,7 +264,6 @@ const BookDetails = () => {
                     />
                   </PaginationItem>
 
-                  {/* First page */}
                   <PaginationItem>
                     <PaginationLink
                       isActive={currentPage === 1}
@@ -285,17 +273,14 @@ const BookDetails = () => {
                     </PaginationLink>
                   </PaginationItem>
 
-                  {/* Ellipsis if needed */}
                   {currentPage > 3 && (
                     <PaginationItem>
                       <PaginationEllipsis />
                     </PaginationItem>
                   )}
 
-                  {/* Pages around current page */}
                   {Array.from({ length: totalPages }).map((_, index) => {
                     const pageNumber = index + 1;
-                    // Show current page and adjacent pages
                     if (
                       pageNumber !== 1 &&
                       pageNumber !== totalPages &&
@@ -316,14 +301,12 @@ const BookDetails = () => {
                     return null;
                   })}
 
-                  {/* Ellipsis if needed */}
                   {currentPage < totalPages - 2 && (
                     <PaginationItem>
                       <PaginationEllipsis />
                     </PaginationItem>
                   )}
 
-                  {/* Last page (if more than 1 page) */}
                   {totalPages > 1 && (
                     <PaginationItem>
                       <PaginationLink
@@ -346,6 +329,8 @@ const BookDetails = () => {
             )}
           </div>
         </div>
+
+        {/* REVIEW FORM */}
         <div className='w-full lg:w-[30%]'>
           <ReviewForm book_id={parseInt(id || '0')} />
         </div>

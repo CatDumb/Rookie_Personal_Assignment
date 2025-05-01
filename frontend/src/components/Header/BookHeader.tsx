@@ -1,5 +1,3 @@
-import './Header.css';  // Fixed the import path
-
 interface BookHeaderProps {
   text: string;
 }
@@ -7,8 +5,8 @@ interface BookHeaderProps {
 export const BookHeader = ({ text = "Book" }: BookHeaderProps) => {
     return (
         <div className="header">
-            <div className="header-text"><h3>{text}</h3></div>
-            <hr className="header-divider" />
+            <div className="font-bold my-4 text-2xl"><h3>{text}</h3></div>
+            <hr></hr>
         </div>
     )
 }

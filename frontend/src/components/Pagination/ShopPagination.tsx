@@ -22,7 +22,7 @@ function ShopPagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex justify-center mt-8">
+    <div className="flex justify-center mt-4">
       <Pagination>
         <PaginationContent>
           <PaginationItem>
