@@ -27,8 +27,8 @@ export interface ShopBooksResponse {
   pages: number;
 }
 
-// Interface for the API response structure
-interface BookApiItem {
+// Interface for the API response structure - now exported
+export interface BookApiItem {
   id: number;
   name: string;
   author: string;
@@ -39,6 +39,36 @@ interface BookApiItem {
   category: string | null;
   summary?: string; // Add summary field
   review_count?: number; // Add review_count field
+}
+
+// Common interface for book data used in UI components
+export interface BookViewModel {
+  id: number;
+  title: string;
+  author: string;
+  price: number;
+  discountPrice: number | null;
+  imageUrl: string;
+  rating: number;
+  category: string;
+  summary?: string;
+  reviewCount?: number;
+}
+
+// Transform API response to view model
+export function transformToViewModel(apiBook: BookApiItem): BookViewModel {
+  return {
+    id: apiBook.id,
+    title: apiBook.name,
+    author: apiBook.author,
+    price: apiBook.price,
+    discountPrice: apiBook.discount_price,
+    imageUrl: apiBook.cover_photo || "/placeholder-book.png",
+    rating: apiBook.average_rating || 0,
+    category: apiBook.category || "",
+    summary: apiBook.summary || "",
+    reviewCount: apiBook.review_count || 0
+  };
 }
 
 interface BookApiResponse {
@@ -64,17 +94,28 @@ export const getShopBooks = async (params: ShopParams = {}): Promise<ShopBooksRe
   }
   queryParams.append('per_page', String(perPage)); // Instead of 'limit
 
+  // DEBUGGING: Log all incoming params
+  console.log('getShopBooks called with params:', params);
+
   // Add filter parameters if they exist
   if (params.categories && params.categories.length > 0) {
-    queryParams.append('category_ids', params.categories.join(','));
+    const categoryParam = params.categories.join(',');
+    // Use the correct parameter name for the backend
+    queryParams.append('category_ids', categoryParam);
+    console.log(`Adding category filter: ${categoryParam}`);
   }
 
   if (params.authors && params.authors.length > 0) {
-    queryParams.append('author_ids', params.authors.join(','));
+    const authorParam = params.authors.join(',');
+    // Use the correct parameter name for the backend
+    queryParams.append('author_ids', authorParam);
+    console.log(`Adding author filter: ${authorParam}`);
   }
 
   if (params.ratings && params.ratings.length > 0) {
-    queryParams.append('rating_min', String(params.ratings[0]));
+    const ratingParam = String(params.ratings[0]);
+    queryParams.append('rating_min', ratingParam);
+    console.log(`Adding rating filter: ${ratingParam}`);
   }
 
   // Add sorting parameter
@@ -99,8 +140,38 @@ export const getShopBooks = async (params: ShopParams = {}): Promise<ShopBooksRe
     queryParams.append('sort_by', sortBy);
   }
 
+  const finalUrl = `/api/book?${queryParams.toString()}`;
+  console.log(`Making API request to: ${finalUrl}`);
+
+  // Create a browser-side fetch for debugging (in addition to axios)
+  const debugFetch = () => {
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+      fetch(`${baseUrl}${finalUrl}`)
+        .then(res => {
+          console.log('Debug fetch status:', res.status);
+          return res.json();
+        })
+        .then(data => {
+          console.log('Debug fetch response:', {
+            total: data.total,
+            itemsCount: data.items?.length
+          });
+        })
+        .catch(err => {
+          console.error('Debug fetch error:', err);
+        });
+    } catch (err) {
+      console.error('Failed to make debug fetch:', err);
+    }
+  };
+
+  // Call the debug fetch in parallel
+  debugFetch();
+
   try {
-    const response = await api.get<BookApiResponse>(`/api/book?${queryParams.toString()}`);
+    const response = await api.get<BookApiResponse>(finalUrl);
+    console.log(`API Response - Total Books: ${response.data.total}, Current Page: ${response.data.page}`);
 
     // Transform the response to match the expected format
     return {

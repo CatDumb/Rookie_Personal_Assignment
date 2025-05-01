@@ -20,6 +20,9 @@ load_dotenv(dotenv_path)
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
+REFRESH_TOKEN_EXPIRE_DAYS = int(
+    os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"),
+)  # Default 7 days
 if not SECRET_KEY or not ALGORITHM or not ACCESS_TOKEN_EXPIRE_MINUTES:
     raise EnvironmentError(
         "Missing required environment variables: SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES",
@@ -99,6 +102,7 @@ def create_access_token(
     # Convert the public user data to a dictionary
     to_encode = data.dict()
     # Add subject claim explicitly with the user email as unique identifier
+    to_encode["sub"] = data.email
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
@@ -106,6 +110,40 @@ def create_access_token(
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def create_refresh_token(
+    data: UserInfoReturn,
+    expires_delta: timedelta | None = None,
+) -> str:
+    """
+    Create a JWT refresh token with a longer expiry time.
+    This token will be used to get new access tokens.
+    """
+    to_encode = {"sub": data.email}
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def verify_token(token: str) -> dict:
+    """
+    Verify a token and return its payload if valid.
+    Raises an exception if token is invalid.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 async def get_current_user(

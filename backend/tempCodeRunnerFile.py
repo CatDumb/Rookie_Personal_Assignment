@@ -33,19 +33,19 @@ def get_password_hash(password: str) -> str:
 # Define your models
 # --------------------
 class Author(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)  # Auto-increment handled by DB
     author_name: str
     author_bio: str
 
 
 class Category(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)  # Auto-increment handled by DB
     category_name: str
     category_desc: str
 
 
 class User(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)  # Auto-increment handled by DB
     first_name: str
     last_name: str
     email: str
@@ -54,7 +54,7 @@ class User(SQLModel, table=True):
 
 
 class Book(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)  # Auto-increment handled by DB
     category_id: int
     author_id: int
     book_title: str
@@ -64,7 +64,7 @@ class Book(SQLModel, table=True):
 
 
 class Discount(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)  # Auto-increment handled by DB
     book_id: int
     discount_start_date: date  # use date type
     discount_end_date: date  # use date type
@@ -72,7 +72,7 @@ class Discount(SQLModel, table=True):
 
 
 class Order(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)  # Auto-increment handled by DB
     user_id: int
     order_date: datetime
     order_total: float
@@ -80,7 +80,7 @@ class Order(SQLModel, table=True):
 
 class OrderItem(SQLModel, table=True):
     __tablename__ = "order_item"
-    id: int = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)  # Auto-increment handled by DB
     order_id: int
     book_id: int
     quantity: int
@@ -88,7 +88,7 @@ class OrderItem(SQLModel, table=True):
 
 
 class Review(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)  # Auto-increment handled by DB
     book_id: int
     review_title: str
     review_details: str
@@ -96,9 +96,10 @@ class Review(SQLModel, table=True):
     rating_star: int  # Fixed: changed from rating_start to rating_star
 
 
+# BookStats is special as its ID needs to match book.id, so we need to keep it
 class BookStats(SQLModel, table=True):
     __tablename__ = "book_stats"
-    id: int = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)  # Must match book.id
     review_count: int
     total_star: int
     avg_rating: float
@@ -275,7 +276,7 @@ with Session(engine) as session:
             session.add(r)
     session.commit()
 
-    # BookStats
+    # BookStats - BookStats ID must match the Book ID
     for book in books:
         # Get review count and star data
         review_query = text("""
@@ -306,8 +307,9 @@ with Session(engine) as session:
             discount_result.discount_price if discount_result else book.book_price
         )
 
+        # Here we must set the id explicitly because BookStats.id must match Book.id
         bs = BookStats(
-            id=book.id,  # This links book_stats.id to book.id
+            id=book.id,  # This is necessary because we need to link book_stats.id to book.id
             review_count=review_stats.review_count,
             total_star=int(review_stats.total_star),  # Store the total star count
             avg_rating=float(review_stats.avg_rating),  # This is calculated in SQL

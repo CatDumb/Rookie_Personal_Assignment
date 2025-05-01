@@ -1,12 +1,16 @@
+"""Book-related API endpoints and operations."""
+
+from typing import Optional
+
 from app.core.book_stat import update_book_stats
 from app.core.db_config import get_db
 from app.db.author import Author
 from app.db.book import Book
 from app.db.bookstats import BookStats
-from app.db.category import Category  # Add this import
+from app.db.category import Category
 from app.db.discount import Discount
-from app.schema.book import BookDetail  # Add this import
 from app.schema.book import (
+    BookDetail,
     BookDetailResponse,
     BookFilterRequest,
     BooksOnSaleResponse,
@@ -17,7 +21,7 @@ from app.schema.book import (
     RatedBook,
     RecommendedBooksResponse,
 )
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -30,11 +34,32 @@ router = APIRouter(
 @router.get("/", response_model=PaginatedBooksResponse)
 async def list_books(
     filters: BookFilterRequest = Depends(),
+    category_ids: Optional[str] = Query(
+        None,
+        description="Comma-separated list of category IDs",
+    ),
+    author_ids: Optional[str] = Query(
+        None,
+        description="Comma-separated list of author IDs",
+    ),
     db: Session = Depends(get_db),
 ):
-    """Paginated list of books with filtering and sorting options"""
+    """
+    Get a paginated list of books with filtering and sorting options.
+
+    Args:
+        filters (BookFilterRequest): Filtering and pagination parameters
+        category_ids (str, optional): Comma-separated list of category IDs to filter by
+        author_ids (str, optional): Comma-separated list of author IDs to filter by
+        db (Session): Database session dependency
+
+    Returns:
+        PaginatedBooksResponse: Paginated list of books with metadata
+
+    Raises:
+        HTTPException: If there's an error retrieving books (500)
+    """
     try:
-        # Start with base query joining necessary tables
         query = (
             db.query(Book, Author, Discount, Category)
             .join(Author, Book.author_id == Author.id)
@@ -48,59 +73,75 @@ async def list_books(
             .join(BookStats, Book.id == BookStats.id, isouter=True)
         )
 
-        # Apply category filter if provided
-        if filters.category_id is not None:
+        parsed_category_ids = []
+        if category_ids:
+            try:
+                parsed_category_ids = [
+                    int(id.strip()) for id in category_ids.split(",") if id.strip()
+                ]
+            except ValueError:
+                pass
+
+        parsed_author_ids = []
+        if author_ids:
+            try:
+                parsed_author_ids = [
+                    int(id.strip()) for id in author_ids.split(",") if id.strip()
+                ]
+            except ValueError:
+                pass
+
+        if parsed_category_ids:
+            query = query.filter(Book.category_id.in_(parsed_category_ids))
+        elif filters.category_ids and len(filters.category_ids) > 0:
+            query = query.filter(Book.category_id.in_(filters.category_ids))
+        elif filters.category_id is not None:
             query = query.filter(Book.category_id == filters.category_id)
 
-        # Apply minimum rating filter if provided
+        if parsed_author_ids:
+            query = query.filter(Book.author_id.in_(parsed_author_ids))
+        elif filters.author_ids and len(filters.author_ids) > 0:
+            query = query.filter(Book.author_id.in_(filters.author_ids))
+        elif filters.author_id is not None:
+            query = query.filter(Book.author_id == filters.author_id)
+
         if filters.rating_min is not None:
             query = query.filter(BookStats.avg_rating >= filters.rating_min)
 
-        # Apply sorting based on sort_by parameter
         if filters.sort_by == "onsale":
-            # Sort by discount amount (highest first), without excluding non-discounted items
-            # For books without discount, discount amount is 0
             query = query.order_by(
                 func.coalesce(Book.book_price - Discount.discount_price, 0).desc(),
-                Book.book_title.asc(),  # Secondary sort by title for items with same discount
+                Book.book_title.asc(),
             )
         elif filters.sort_by == "popularity":
-            # Sort by review count (highest first)
             query = query.order_by(
                 func.coalesce(BookStats.review_count, 0).desc(),
-                Book.book_title.asc(),  # Secondary sort for books with same review count
+                Book.book_title.asc(),
             )
         elif filters.sort_by == "price_asc":
-            # Sort by lowest price first using BookStats.lowest_price
             query = query.order_by(
                 BookStats.lowest_price.asc(),
-                Book.book_title.asc(),  # Secondary sort for books with same price
+                Book.book_title.asc(),
             )
         elif filters.sort_by == "price_desc":
-            # Sort by highest price first using BookStats.lowest_price
             query = query.order_by(
                 BookStats.lowest_price.desc(),
-                Book.book_title.asc(),  # Secondary sort for books with same price
+                Book.book_title.asc(),
             )
         else:
-            # Default sorting by name
             query = query.order_by(Book.book_title.asc())
 
-        # Calculate pagination values
         total_items = query.count()
         total_pages = (total_items + filters.per_page - 1) // filters.per_page
 
-        # Apply pagination
         query = query.offset((filters.page - 1) * filters.per_page).limit(
             filters.per_page,
         )
 
-        # Execute query
         result = query.all()
 
-        # Format the results
         books = []
-        book_ids = []  # Store book IDs for updating stats
+        book_ids = []
         for book, author, discount, _ in result:
             books.append(
                 DiscountedBook(
@@ -117,7 +158,6 @@ async def list_books(
             )
             book_ids.append(book.id)
 
-        # Return paginated response
         response = PaginatedBooksResponse(
             items=books,
             total=total_items,
@@ -126,17 +166,15 @@ async def list_books(
             pages=total_pages,
         )
 
-        # Update book stats asynchronously (without awaiting to improve response time)
         await update_book_stats(db, book_ids)
 
         return response
 
     except Exception as e:
-        # Rollback transaction in case of error
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred: {str(e)}",
+            detail=f"Error retrieving books: {str(e)}",
         )
 
 
@@ -146,14 +184,23 @@ async def list_books(
     response_model=BooksOnSaleResponse,
 )
 async def get_books_on_sale(db: Session = Depends(get_db)):
-    """Return top 10 books with the highest discount amount"""
+    """
+    Return top 10 books with the highest discount amount.
+
+    Args:
+        db (Session): Database session dependency
+
+    Returns:
+        BooksOnSaleResponse: List of discounted books sorted by discount amount
+
+    Raises:
+        HTTPException: If there's an error retrieving books (500)
+    """
     try:
-        # Get current date to filter active discounts
         from datetime import datetime
 
         current_date = datetime.now().date()
 
-        # Query books with active discounts
         books = (
             db.query(Book, Author, Discount)
             .join(Author, Book.author_id == Author.id)
@@ -162,10 +209,9 @@ async def get_books_on_sale(db: Session = Depends(get_db)):
             .filter(Discount.discount_end_date >= current_date)
             .filter(
                 Discount.discount_price < Book.book_price,
-            )  # Ensure discount is valid
+            )
         )
 
-        # Add a calculated column for discount amount
         books_with_discount = []
         for book, author, discount in books.all():
             discount_amount = book.book_price - discount.discount_price
@@ -178,14 +224,12 @@ async def get_books_on_sale(db: Session = Depends(get_db)):
                 },
             )
 
-        # Sort by discount amount and take top 10
         sorted_books = sorted(
             books_with_discount,
             key=lambda x: x["discount_amount"],
             reverse=True,
         )[:10]
 
-        # Format the response using the Pydantic model
         on_sale_books = [
             DiscountedBook(
                 id=item["book"].id,
@@ -199,14 +243,12 @@ async def get_books_on_sale(db: Session = Depends(get_db)):
             for item in sorted_books
         ]
 
-        # Update book statistics for featured books - use await with async function
         book_ids = [item.id for item in on_sale_books]
         await update_book_stats(db, book_ids)
 
         return BooksOnSaleResponse(items=on_sale_books)
 
     except Exception as e:
-        # Rollback transaction in case of error
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -220,9 +262,19 @@ async def get_books_on_sale(db: Session = Depends(get_db)):
     response_model=RecommendedBooksResponse,
 )
 async def get_recommended_books(db: Session = Depends(get_db)):
-    """Return top 8 recommended books based on highest average rating and lowest price"""
+    """
+    Get top 8 recommended books based on highest average rating and lowest price.
+
+    Args:
+        db (Session): Database session dependency
+
+    Returns:
+        RecommendedBooksResponse: List of recommended books with rating information
+
+    Raises:
+        HTTPException: If there's an error retrieving books (500)
+    """
     try:
-        # Query books joined with their stats, ordered by rating and price
         books = (
             db.query(Book, Author, BookStats, Discount)
             .join(BookStats, Book.id == BookStats.id)
@@ -233,13 +285,12 @@ async def get_recommended_books(db: Session = Depends(get_db)):
                 & (Discount.discount_start_date <= func.current_date())
                 & (Discount.discount_end_date >= func.current_date()),
             )
-            .filter(BookStats.review_count > 0)  # Filter out books with 0 reviews
+            .filter(BookStats.review_count > 0)
             .order_by(BookStats.avg_rating.desc(), BookStats.lowest_price.asc())
             .limit(8)
             .all()
         )
 
-        # Format the response using the Pydantic model
         recommended_books = [
             RatedBook(
                 id=book.id,
@@ -254,14 +305,12 @@ async def get_recommended_books(db: Session = Depends(get_db)):
             for book, author, stats, discount in books
         ]
 
-        # Update book statistics for featured books
         book_ids = [book.id for book, _, _, _ in books]
         await update_book_stats(db, book_ids)
 
         return RecommendedBooksResponse(items=recommended_books)
 
     except Exception as e:
-        # Rollback transaction in case of error
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -275,9 +324,19 @@ async def get_recommended_books(db: Session = Depends(get_db)):
     response_model=PopularBooksResponse,
 )
 async def get_popular_books(db: Session = Depends(get_db)):
-    """Return top 8 popular books based on highest numbers of review and lowest price"""
+    """
+    Get top 8 popular books based on highest number of reviews and lowest price.
+
+    Args:
+        db (Session): Database session dependency
+
+    Returns:
+        PopularBooksResponse: List of popular books with review count information
+
+    Raises:
+        HTTPException: If there's an error retrieving books (500)
+    """
     try:
-        # Query books joined with their stats, ordered by rating and price, and filter out books with 0 reviews
         books = (
             db.query(Book, Author, Discount)
             .join(BookStats, Book.id == BookStats.id)
@@ -288,12 +347,14 @@ async def get_popular_books(db: Session = Depends(get_db)):
                 & (Discount.discount_start_date <= func.current_date())
                 & (Discount.discount_end_date >= func.current_date()),
             )
-            .order_by(BookStats.review_count.desc(), Discount.discount_price.asc())
+            .order_by(
+                func.coalesce(BookStats.review_count, 0).desc(),
+                Book.book_title.asc(),
+            )
             .limit(8)
             .all()
         )
 
-        # Format the response using the Pydantic model
         popular_books = [
             PopularBook(
                 id=book.id,
@@ -309,14 +370,12 @@ async def get_popular_books(db: Session = Depends(get_db)):
             for book, author, discount in books
         ]
 
-        # Update book statistics for featured books - use await with async function
         book_ids = [book.id for book, _, _ in books]
         await update_book_stats(db, book_ids)
 
         return PopularBooksResponse(items=popular_books)
 
     except Exception as e:
-        # Rollback transaction in case of error
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -330,9 +389,21 @@ async def get_popular_books(db: Session = Depends(get_db)):
     response_model=BookDetailResponse,
 )
 async def get_book_by_id(book_id: int, db: Session = Depends(get_db)):
-    """Get book by ID"""
+    """
+    Get detailed information about a specific book by its ID.
+
+    Args:
+        book_id (int): The ID of the book to retrieve
+        db (Session): Database session dependency
+
+    Returns:
+        BookDetailResponse: Detailed book information including category, author,
+                           pricing, and stats
+
+    Raises:
+        HTTPException: If book not found (404) or other errors (500)
+    """
     try:
-        # Query books with associations
         book_data = (
             db.query(Book, Category, Author)
             .join(Category, Book.category_id == Category.id)
@@ -349,7 +420,6 @@ async def get_book_by_id(book_id: int, db: Session = Depends(get_db)):
 
         book, category, author = book_data
 
-        # Get any active discount
         discount = (
             db.query(Discount)
             .filter(
@@ -360,7 +430,6 @@ async def get_book_by_id(book_id: int, db: Session = Depends(get_db)):
             .first()
         )
 
-        # Get book stats
         stats = db.query(BookStats).filter(BookStats.id == book_id).first()
 
         return BookDetailResponse(

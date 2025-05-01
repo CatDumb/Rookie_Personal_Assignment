@@ -1,3 +1,5 @@
+"""Book review API endpoints."""
+
 from app.core.book_stat import refresh_review_stats
 from app.core.db_config import get_db
 from app.db.bookstats import BookStats
@@ -14,7 +16,15 @@ router = APIRouter(
 
 @router.get("/book/{book_id}")
 def get_book_reviews(book_id: int):
-    """Get reviews for a specific book"""
+    """
+    Get reviews for a specific book.
+
+    Args:
+        book_id (int): ID of the book to retrieve reviews for
+
+    Returns:
+        dict: Book ID and list of reviews
+    """
     return {"book_id": book_id, "reviews": ["review1", "review2"]}
 
 
@@ -24,7 +34,19 @@ def get_book_reviews(book_id: int):
     response_model=ReviewResponse,
 )
 async def add_book_review(review: ReviewRequest, db: Session = Depends(get_db)):
-    """Add a review for a specific book"""
+    """
+    Add a review for a specific book.
+
+    Args:
+        review (ReviewRequest): Review data including title, details, rating
+        db (Session): Database session dependency
+
+    Returns:
+        ReviewResponse: Created review data
+
+    Raises:
+        HTTPException: If book not found (404) or other errors (500)
+    """
     try:
         # Check if the book exists
         book = db.query(BookStats).filter(BookStats.id == review.book_id).first()

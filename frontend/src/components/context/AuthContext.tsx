@@ -1,5 +1,16 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { login, LoginPayload } from '../../api/auth';
+import { login, LoginPayload, refreshToken } from '../../api/auth';
+import { jwtDecode } from 'jwt-decode';
+
+interface JwtPayload {
+  exp: number;
+  sub: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  admin?: boolean;
+  [key: string]: string | number | boolean | undefined;
+}
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -31,6 +42,74 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [lastName, setLastName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTimerId, setRefreshTimerId] = useState<number | null>(null);
+
+  // Check token validity and schedule refresh if needed
+  const checkAndScheduleRefresh = () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return false;
+
+      // Decode the token to get expiration
+      const decoded = jwtDecode<JwtPayload>(token);
+
+      // Check if token is expired or about to expire
+      const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+      const expiryTime = decoded.exp;
+      const timeUntilExpiry = expiryTime - currentTime;
+
+      // If token is expired, try to refresh it immediately
+      if (timeUntilExpiry <= 0) {
+        handleRefreshToken();
+        return false;
+      }
+
+      // Schedule refresh 1 minute before expiry (or immediately if less than 1 minute)
+      const refreshTime = Math.max(0, timeUntilExpiry - 60) * 1000;
+
+      // Clear any existing timer
+      if (refreshTimerId !== null) {
+        window.clearTimeout(refreshTimerId);
+      }
+
+      // Set new timer for refresh
+      const timerId = window.setTimeout(() => {
+        handleRefreshToken();
+      }, refreshTime);
+
+      setRefreshTimerId(timerId);
+      return true;
+    } catch (error) {
+      console.error('Error checking token:', error);
+      return false;
+    }
+  };
+
+  const handleRefreshToken = async () => {
+    try {
+      const refreshTokenValue = localStorage.getItem('refresh_token');
+      if (!refreshTokenValue) {
+        // No refresh token, logout
+        handleLogout();
+        return;
+      }
+
+      const data = await refreshToken(refreshTokenValue);
+
+      if (data && data.access_token) {
+        localStorage.setItem('access_token', data.access_token);
+
+        // Schedule the next refresh
+        checkAndScheduleRefresh();
+      } else {
+        // Refresh failed, logout
+        handleLogout();
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      handleLogout();
+    }
+  };
 
   // Check if user is logged in on initial load
   useEffect(() => {
@@ -39,12 +118,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const storedLastName = localStorage.getItem('last_name');
 
     if (token) {
-      setIsLoggedIn(true);
-      setFirstName(storedFirstName);
-      setLastName(storedLastName);
+      const isValid = checkAndScheduleRefresh();
+      if (isValid) {
+        setIsLoggedIn(true);
+        setFirstName(storedFirstName);
+        setLastName(storedLastName);
+      } else {
+        // Token is invalid, try refresh
+        handleRefreshToken();
+      }
     }
 
     setLoading(false);
+
+    // Clean up timer on unmount
+    return () => {
+      if (refreshTimerId !== null) {
+        window.clearTimeout(refreshTimerId);
+      }
+    };
   }, []);
 
   const handleLogin = async (payload: LoginPayload): Promise<boolean> => {
@@ -56,12 +148,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (data) {
         localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
         localStorage.setItem('first_name', data.first_name);
         localStorage.setItem('last_name', data.last_name);
 
         setIsLoggedIn(true);
         setFirstName(data.first_name);
         setLastName(data.last_name);
+
+        // Schedule token refresh
+        checkAndScheduleRefresh();
+
         setLoading(false);
         return true;
       } else {
@@ -82,8 +179,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('first_name');
     localStorage.removeItem('last_name');
+
+    // Clear refresh timer
+    if (refreshTimerId !== null) {
+      window.clearTimeout(refreshTimerId);
+      setRefreshTimerId(null);
+    }
 
     setIsLoggedIn(false);
     setFirstName(null);

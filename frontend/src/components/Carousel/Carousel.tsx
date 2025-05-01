@@ -61,8 +61,8 @@ const CarouselBar = () => {
 
     return (
         <div className="flex flex-col items-center justify-center w-full">
-            <div className="border-2 border-gray-400 rounded-lg py-5 px-10 w-full relative">
-                <div className="relative">
+            <div className="border-2 border-gray-400 rounded-lg py-5 px-10 w-full">
+                <div className="relative px-8">
                     <Carousel
                         opts={{
                             align: "start",
@@ -71,13 +71,13 @@ const CarouselBar = () => {
                         }}
                         className="w-full"
                     >
-                        <CarouselContent>
+                        <CarouselContent className="gap-4 px-4">
                             {validBooks.map((book) => (
                                 <CarouselItem
                                     key={book.id}
-                                    className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                                    className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 pr-4"
                                 >
-                                    <div className="flex items-center justify-center p-1">
+                                    <div className="flex items-center justify-center">
                                         <BookCard
                                             id={book.id}
                                             title={book.name}
@@ -92,8 +92,8 @@ const CarouselBar = () => {
                         </CarouselContent>
                         {validBooks.length > 1 && (
                             <>
-                                <CarouselPrevious className="-left-6 md:-left-7 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
-                                <CarouselNext className="-right-6 md:-right-7 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
+                                <CarouselPrevious className="-left-8 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
+                                <CarouselNext className="-right-8 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
                             </>
                         )}
                     </Carousel>

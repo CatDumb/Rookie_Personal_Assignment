@@ -65,7 +65,9 @@ class BookFilterRequest(BaseModel):
     page: int = 1
     per_page: ValidPerPage = ValidPerPage.MEDIUM  # Default to 15
     category_id: Optional[int] = None
+    category_ids: Optional[List[int]] = None  # Add support for multiple category IDs
     author_id: Optional[int] = None
+    author_ids: Optional[List[int]] = None  # Add support for multiple author IDs
     rating_min: Optional[float] = None
     sort_by: str = "none"
 

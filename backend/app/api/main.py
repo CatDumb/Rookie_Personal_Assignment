@@ -1,3 +1,5 @@
+"""API entrypoint for the backend application."""
+
 import os
 
 from app.api.routes import api_router  # Import your API routes

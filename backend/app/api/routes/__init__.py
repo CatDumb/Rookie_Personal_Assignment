@@ -1,3 +1,5 @@
+"""API routes configuration module."""
+
 from fastapi import APIRouter
 
 from .author import router as author_router

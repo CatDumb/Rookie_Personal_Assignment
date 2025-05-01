@@ -1,3 +1,5 @@
+"""Category-related API endpoints."""
+
 from app.core.db_config import get_db
 from app.db.category import Category
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,18 +17,21 @@ router = APIRouter(
     response_model=list[Category],
 )
 async def get_categories(db: Session = Depends(get_db)):
-    """Return all categories with id and name"""
+    """
+    Return all book categories with their ID, name, and description.
+
+    Args:
+        db (Session): Database session dependency
+
+    Returns:
+        list[Category]: List of category objects containing id, category_name, and category_desc
+
+    Raises:
+        HTTPException: If there's an error while fetching categories (500)
+    """
     try:
-        # Add ORDER BY to sort alphabetically by category_name
         categories = db.query(Category).order_by(Category.category_name).all()
 
-        # Debug the actual data
-        for cat in categories:
-            print(
-                f"Category ID: {cat.id}, Name: {cat.category_name}, Desc: {cat.category_desc}",
-            )
-
-        # Create explicit dictionaries to ensure fields are mapped correctly
         result = [
             {
                 "id": cat.id,

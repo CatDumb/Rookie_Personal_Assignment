@@ -1,13 +1,18 @@
+"""User authentication and management endpoints."""
+
 import logging
 
 from app.core.auth import (
     create_access_token,
+    create_refresh_token,
     get_password_hash,
     get_user,
     verify_password,
+    verify_token,
 )
 from app.core.db_config import get_db
 from app.db.user import User as UserModel
+from app.schema.token import RefreshTokenRequest
 from app.schema.user import LoginUserRequest, RegisterUserRequest, UserInfoReturn
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -20,6 +25,19 @@ router = APIRouter(prefix="/user", tags=["user"])
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(request: RegisterUserRequest, db: Session = Depends(get_db)):
+    """
+    Register a new user account.
+
+    Args:
+        request (RegisterUserRequest): User registration data including email, password, names
+        db (Session): Database session dependency
+
+    Returns:
+        dict: Success message and authentication token
+
+    Raises:
+        HTTPException: If email already registered (409) or other errors (500)
+    """
     try:
         # Check if the user already exists
         if get_user(db, request.email):
@@ -71,6 +89,20 @@ async def register_user(request: RegisterUserRequest, db: Session = Depends(get_
 
 @router.post("/login", status_code=status.HTTP_200_OK)
 async def login_user(request: LoginUserRequest, db: Session = Depends(get_db)):
+    """
+    Authenticate a user and provide access tokens.
+
+    Args:
+        request (LoginUserRequest): User login credentials (email, password)
+        db (Session): Database session dependency
+
+    Returns:
+        dict: Success message, access token, refresh token, and user information
+
+    Raises:
+        HTTPException: If account not registered (401), incorrect password (401),
+                      or other errors (500)
+    """
     try:
         # Fetch user record (returns a UserInDB instance with hashed password from 'password' column)
         user = get_user(db, request.email)
@@ -95,11 +127,14 @@ async def login_user(request: LoginUserRequest, db: Session = Depends(get_db)):
         )
 
         # Generate a new token by passing the public user model directly
-        new_token = create_access_token(data=user_data)
+        access_token = create_access_token(data=user_data)
+        refresh_token = create_refresh_token(data=user_data)
 
         return {
             "message": "Login successful",
-            "access_token": new_token,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
             "last_name": user.last_name,
             "first_name": user.first_name,
         }
@@ -115,8 +150,83 @@ async def login_user(request: LoginUserRequest, db: Session = Depends(get_db)):
         )
 
 
+@router.post("/refresh-token", status_code=status.HTTP_200_OK)
+async def refresh_access_token(
+    request: RefreshTokenRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Generate a new access token using a valid refresh token.
+
+    Args:
+        request (RefreshTokenRequest): Refresh token data
+        db (Session): Database session dependency
+
+    Returns:
+        dict: New access token and token type
+
+    Raises:
+        HTTPException: If invalid refresh token (401), user not found (401),
+                      or other errors (500)
+    """
+    try:
+        # Verify the refresh token
+        payload = verify_token(request.refresh_token)
+        email = payload.get("sub")
+
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token",
+            )
+
+        # Get the user from the database
+        user = get_user(db, email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+            )
+
+        # Create new user data model
+        user_data = UserInfoReturn(
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            admin=user.admin,
+        )
+
+        # Generate a new access token
+        new_access_token = create_access_token(data=user_data)
+
+        return {
+            "access_token": new_access_token,
+            "token_type": "bearer",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error refreshing token: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Token refresh failed due to a system error. Please try again later.",
+        )
+
+
 @router.post("/logout")
 def logout_user():
+    """
+    Endpoint for user logout.
+
+    Note: Currently a placeholder, actual implementation would involve token revocation.
+
+    Returns:
+        dict: Success message
+
+    Raises:
+        HTTPException: If there's an error during logout (500)
+    """
     try:
         # Note: Actual logout functionality often involves token revocation mechanisms.
         return {"message": "User logout endpoint"}

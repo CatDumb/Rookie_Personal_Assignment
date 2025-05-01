@@ -139,6 +139,11 @@ def wipe_database():
         for table in tables:
             # Put table names in quotes to handle reserved keywords like "order"
             session.exec(text(f'TRUNCATE TABLE "{table}" CASCADE'))
+
+            # Reset the auto-increment sequence for each table
+            # This ensures new IDs start from 1 again
+            session.exec(text(f'ALTER SEQUENCE "{table}_id_seq" RESTART WITH 1'))
+
         session.commit()
 
     print("✅ Database wiped successfully!")
