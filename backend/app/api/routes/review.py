@@ -2,9 +2,13 @@
 
 from app.core.book_stat import refresh_review_stats
 from app.core.db_config import get_db
-from app.db.bookstats import BookStats
-from app.db.review import Review
-from app.schema.review import ReviewRequest, ReviewResponse
+
+# Import DB Models
+from app.db.book import Book  # Needed for checking if book exists
+from app.db.review import Review as ReviewModel  # Rename model import
+
+# Import Schemas from new location
+from app.schemas.review import ReviewRequest, ReviewResponse
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -14,50 +18,56 @@ router = APIRouter(
 )
 
 
+# Placeholder for get reviews - needs implementation
 @router.get("/book/{book_id}")
 def get_book_reviews(book_id: int):
     """
     Get reviews for a specific book.
-
-    Args:
-        book_id (int): ID of the book to retrieve reviews for
-
-    Returns:
-        dict: Book ID and list of reviews
+    (Needs implementation)
     """
-    return {"book_id": book_id, "reviews": ["review1", "review2"]}
+    # Example: Fetch reviews from DB and return using ReviewRead schema
+    # reviews_db = db.query(ReviewModel).filter(ReviewModel.book_id == book_id).all()
+    # reviews_read = [ReviewRead.from_orm(r) for r in reviews_db]
+    # return {"book_id": book_id, "reviews": reviews_read}
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Not implemented yet",
+    )
 
 
 @router.post(
-    "/book/{book_id}",
+    "/book/{book_id}",  # book_id in path is now redundant if it's in the body
     status_code=status.HTTP_201_CREATED,
-    response_model=ReviewResponse,
+    response_model=ReviewResponse,  # Use imported schema
 )
-async def add_book_review(review: ReviewRequest, db: Session = Depends(get_db)):
+# Pass book_id via path parameter for consistency or remove if always in body
+async def add_book_review(
+    book_id: int,
+    review: ReviewRequest,
+    db: Session = Depends(get_db),
+):
     """
     Add a review for a specific book.
-
-    Args:
-        review (ReviewRequest): Review data including title, details, rating
-        db (Session): Database session dependency
-
-    Returns:
-        ReviewResponse: Created review data
-
-    Raises:
-        HTTPException: If book not found (404) or other errors (500)
     """
+    # Validate book_id consistency
+    if review.book_id != book_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Book ID in path does not match Book ID in request body.",
+        )
+
     try:
-        # Check if the book exists
-        book = db.query(BookStats).filter(BookStats.id == review.book_id).first()
+        # Check if the book exists using the Book model
+        book = db.query(Book).filter(Book.id == review.book_id).first()
         if not book:
             raise HTTPException(status_code=404, detail="Book not found")
 
-        # Create a new review instance
-        new_review = Review(
+        # Create a new review instance using the Model
+        new_review = ReviewModel(
             book_id=review.book_id,
             review_title=review.review_title,
             review_details=review.review_details,
+            # Use review_date from the request schema (which has a default)
             review_date=review.review_date,
             rating_star=review.rating_star,
         )
@@ -66,15 +76,15 @@ async def add_book_review(review: ReviewRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_review)
 
+        # Refresh stats using the ReviewRequest data
         await refresh_review_stats(db, review)
 
-        return ReviewResponse.from_orm(new_review)
+        # Return the ORM object, Pydantic handles conversion
+        return new_review
 
     except HTTPException:
-        # Re-raise HTTP exceptions as they already have status codes
         raise
     except Exception as e:
-        # Log the error and raise a 500 error
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred: {str(e)}",

@@ -1,7 +1,8 @@
 """Category-related API endpoints."""
 
 from app.core.db_config import get_db
-from app.db.category import Category
+from app.db.category import Category as CategoryModel
+from app.schemas.category import CategoryRead
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -14,7 +15,7 @@ router = APIRouter(
 @router.get(
     "/",
     status_code=status.HTTP_200_OK,
-    response_model=list[Category],
+    response_model=list[CategoryRead],
 )
 async def get_categories(db: Session = Depends(get_db)):
     """
@@ -24,23 +25,14 @@ async def get_categories(db: Session = Depends(get_db)):
         db (Session): Database session dependency
 
     Returns:
-        list[Category]: List of category objects containing id, category_name, and category_desc
+        list[CategoryRead]: List of category objects containing id, category_name, and category_desc
 
     Raises:
         HTTPException: If there's an error while fetching categories (500)
     """
     try:
-        categories = db.query(Category).order_by(Category.category_name).all()
-
-        result = [
-            {
-                "id": cat.id,
-                "category_name": cat.category_name,
-                "category_desc": cat.category_desc,
-            }
-            for cat in categories
-        ]
-        return result
+        categories = db.query(CategoryModel).order_by(CategoryModel.category_name).all()
+        return categories
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

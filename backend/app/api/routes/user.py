@@ -5,6 +5,7 @@ import logging
 from app.core.auth import (
     create_access_token,
     create_refresh_token,
+    get_current_user,
     get_password_hash,
     get_user,
     verify_password,
@@ -12,8 +13,8 @@ from app.core.auth import (
 )
 from app.core.db_config import get_db
 from app.db.user import User as UserModel
-from app.schema.token import RefreshTokenRequest
-from app.schema.user import LoginUserRequest, RegisterUserRequest, UserInfoReturn
+from app.schemas.token import RefreshTokenRequest, Token
+from app.schemas.user import LoginUserRequest, RegisterUserRequest, UserInfoReturn
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -62,7 +63,7 @@ async def register_user(request: RegisterUserRequest, db: Session = Depends(get_
         db.commit()
         db.refresh(new_user)
 
-        # Create a public user model for the response
+        # Create a public user model for the token data
         user_data = UserInfoReturn(
             email=new_user.email,
             first_name=new_user.first_name,
@@ -70,10 +71,14 @@ async def register_user(request: RegisterUserRequest, db: Session = Depends(get_
             admin=new_user.admin,
         )
 
-        # Generate a new token by passing the public user model directly
+        # Generate a new access token by passing the user data
         new_token = create_access_token(data=user_data)
 
-        return {"message": "User registered successfully", "token": new_token}
+        return {
+            "message": "User registered successfully",
+            "access_token": new_token,
+            "token_type": "bearer",
+        }
 
     except HTTPException:
         # Re-raise HTTP exceptions as they already have status codes
@@ -104,7 +109,7 @@ async def login_user(request: LoginUserRequest, db: Session = Depends(get_db)):
                       or other errors (500)
     """
     try:
-        # Fetch user record (returns a UserInDB instance with hashed password from 'password' column)
+        # Fetch user record (get_user returns UserInDB with 'hashed_password' field)
         user = get_user(db, request.email)
         if not user:
             raise HTTPException(
@@ -112,7 +117,7 @@ async def login_user(request: LoginUserRequest, db: Session = Depends(get_db)):
                 detail="Account is not registered",
             )
 
-        # Verify the password using the hashed password stored in the 'password' column
+        # Verify the plain password against the 'hashed_password' field from the UserInDB schema
         if not verify_password(request.password, user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -150,7 +155,7 @@ async def login_user(request: LoginUserRequest, db: Session = Depends(get_db)):
         )
 
 
-@router.post("/refresh-token", status_code=status.HTTP_200_OK)
+@router.post("/refresh-token", status_code=status.HTTP_200_OK, response_model=Token)
 async def refresh_access_token(
     request: RefreshTokenRequest,
     db: Session = Depends(get_db),
@@ -199,10 +204,12 @@ async def refresh_access_token(
         # Generate a new access token
         new_access_token = create_access_token(data=user_data)
 
-        return {
-            "access_token": new_access_token,
-            "token_type": "bearer",
-        }
+        # Return structure should match Token schema
+        return Token(
+            access_token=new_access_token,
+            token_type="bearer",
+            # refresh_token is not returned here
+        )
 
     except HTTPException:
         raise
@@ -235,4 +242,51 @@ def logout_user():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Logout failed. Please try again later.",
+        )
+
+
+@router.get("/profile", status_code=status.HTTP_200_OK)
+async def get_user_profile(
+    current_user: UserInfoReturn = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get the current user's profile information including their ID.
+
+    Args:
+        current_user (UserInfoReturn): Current authenticated user
+        db (Session): Database session dependency
+
+    Returns:
+        dict: User profile information including ID
+
+    Raises:
+        HTTPException: If user is not found (404) or other errors (500)
+    """
+    try:
+        # Get the full user data from the database
+        user = db.query(UserModel).filter(UserModel.email == current_user.email).first()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        # Return the user data including ID
+        return {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "admin": user.admin,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting user profile: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve user profile. Please try again later.",
         )

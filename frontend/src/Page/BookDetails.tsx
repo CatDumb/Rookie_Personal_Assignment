@@ -1,21 +1,26 @@
 // src/Page/BookDetails.tsx
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getBookDetails, BookDetailResponse } from '../api/book';
 import { BookHeader } from '../components/Header/BookHeader';
 import { Button } from '../components/ui/button';
 import { ReviewForm } from '../components/ui/reviewForm';
 import { ReviewItem } from '../components/ui/reviewItem';
 import { Star } from 'lucide-react';
+import { useAuth } from '@/components/Context/AuthContext';
+import { QuantitySelector } from '@/components/ui/quantitySelector';
+import { dispatchCartUpdateEvent } from '@/components/Context/CartContext';
+import { useBookDetails } from '@/hooks/useBookDetails';
+import { usePagination } from '@/hooks/usePagination';
 
-import { Pagination,
+import {
+  Pagination,
   PaginationContent,
   PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
- } from '@/components/ui/pagination';
+} from '@/components/ui/pagination';
 
 // ----- TYPES & INTERFACES -----
 interface Review {
@@ -28,17 +33,36 @@ interface Review {
 }
 
 const BookDetails = () => {
-  /* STATE */
   const { id } = useParams<{ id: string }>();
-  const [book, setBook] = useState<BookDetailResponse['book'] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [quantity, setQuantity] = useState(1);
+  const numericId = id ? parseInt(id, 10) : null;
 
-  /* PAGINATION */
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(3);
+  const { book, loading: bookLoading, error: bookError } = useBookDetails(numericId);
+
+  const [quantity, setQuantity] = useState(1);
+  const { isLoggedIn } = useAuth();
+
   const [reviews, setReviews] = useState<Review[]>([]);
+
+  const {
+    currentPage,
+    totalPages,
+    paginatedData: currentReviews,
+    handlePageChange,
+    nextPage,
+    prevPage
+  } = usePagination({
+    data: reviews,
+    itemsPerPage: 3
+  });
+
+  useEffect(() => {
+    if (book) {
+        const dummyReviews = generateDummyReviews(book.review_count || 12);
+        setReviews(dummyReviews);
+    } else {
+        setReviews([]);
+    }
+  }, [book]);
 
   /* EVENT HANDLERS */
   const decrementQuantity = () => {
@@ -46,34 +70,73 @@ const BookDetails = () => {
   };
 
   const incrementQuantity = () => {
-    setQuantity(prev => prev + 1);
+    setQuantity(prev => (prev < 8 ? prev + 1 : 8));
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+  const handleAddToCart = () => {
+    if (!isLoggedIn) {
+      alert('Please log in to add items to your cart.');
+      return;
+    }
+    if (book) {
+      try {
+        const existingCart = localStorage.getItem('cart');
+        let cart = existingCart ? JSON.parse(existingCart) : [];
+
+        if (!Array.isArray(cart)) {
+          console.error('Cart data in local storage is not an array. Resetting.');
+          cart = [];
+        }
+
+        const existingItemIndex = cart.findIndex((item: { id: number }) => item.id === book.id);
+
+        if (existingItemIndex > -1) {
+          const currentQuantityInCart = cart[existingItemIndex].quantity;
+          const potentialQuantity = currentQuantityInCart + quantity;
+          const MAX_QUANTITY = 8;
+
+          if (currentQuantityInCart >= MAX_QUANTITY) {
+              alert('You already have the maximum quantity (8) of this item in your cart.');
+              return;
+          } else if (potentialQuantity > MAX_QUANTITY) {
+              const quantityToAdd = MAX_QUANTITY - currentQuantityInCart;
+              cart[existingItemIndex].quantity = MAX_QUANTITY;
+              alert(`Quantity limit reached. Added ${quantityToAdd} item(s) to reach the maximum of ${MAX_QUANTITY}.`);
+          } else {
+              cart[existingItemIndex].quantity += quantity;
+              alert('Item quantity updated in cart!');
+          }
+
+        } else {
+          const MAX_QUANTITY = 8;
+          let quantityToAdd = quantity;
+          let alertMessage = 'Item added to cart!';
+
+          if (quantity > MAX_QUANTITY) {
+              quantityToAdd = MAX_QUANTITY;
+              alertMessage = `Quantity limit is ${MAX_QUANTITY}. Added ${MAX_QUANTITY} items to cart.`;
+          }
+
+          const newItem = { id: book.id, quantity: quantityToAdd };
+          cart.push(newItem);
+          alert(alertMessage);
+        }
+
+        localStorage.setItem('cart', JSON.stringify(cart));
+        dispatchCartUpdateEvent();
+      } catch (error) {
+        console.error('Failed to parse cart from local storage or save item:', error);
+        alert('Error adding item to cart. Please try again.');
+        if (book) {
+          localStorage.setItem('cart', JSON.stringify([{ id: book.id, quantity: quantity }]));
+          dispatchCartUpdateEvent();
+        } else {
+          console.error('Cannot add item to cart because book details are missing.');
+          alert('Error adding item to cart. Book details unavailable.');
+        }
+      }
+    }
   };
-
-  /* DATA FETCHING */
-  useEffect(() => {
-    if (!id) return;
-
-    setLoading(true);
-    setError('');
-
-    getBookDetails(parseInt(id))
-      .then((data) => {
-        setBook(data.book);
-        setLoading(false);
-
-        const dummyReviews = generateDummyReviews(data.book.review_count || 12);
-        setReviews(dummyReviews);
-      })
-      .catch((err) => {
-        console.error("Error fetching book details:", err);
-        setError("Failed to load book details");
-        setLoading(false);
-      });
-  }, [id]);
 
   /* UTILITY FUNCTIONS */
   const generateDummyReviews = (count: number): Review[] => {
@@ -90,16 +153,13 @@ const BookDetails = () => {
       "Would definitely recommend to friends looking for a good read.",
       "I'll be looking for more books by this author in the future."
     ];
-
     const names = ["John D.", "Sarah M.", "Robert K.", "Emily L.", "Michael P.", "Jennifer S.", "David W.", "Amanda C.", "James T.", "Lisa B."];
-
     for (let i = 1; i <= count; i++) {
       const randomRating = Math.floor(Math.random() * 5) + 1;
       const randomContent = reviewContents[i % reviewContents.length];
       const randomName = names[i % names.length];
       const randomDate = new Date();
       randomDate.setDate(randomDate.getDate() - (i * 3));
-
       dummyReviews.push({
         id: i,
         title: `Review ${i}`,
@@ -109,28 +169,23 @@ const BookDetails = () => {
         content: randomContent
       });
     }
-
     return dummyReviews;
   };
 
-  /* PAGINATION CALCULATIONS */
-  const totalPages = Math.ceil(reviews.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentReviews = reviews.slice(indexOfFirstItem, indexOfLastItem);
-
   /* LOADING STATES */
-  if (loading) {
+  if (bookLoading) {
     return <div className="text-center py-20">Loading book details...</div>;
   }
 
-  if (error) {
-    return <div className="text-center py-20 text-red-500">{error}</div>;
+  if (bookError) {
+    return <div className="text-center py-20 text-red-500">{bookError}</div>;
   }
 
   if (!book) {
     return <div className="text-center py-20">Book not found</div>;
   }
+
+  console.log("Book data:", book);
 
   return (
     <div>
@@ -176,38 +231,32 @@ const BookDetails = () => {
         <div className="w-full lg:w-[30%] border-2 border-gray-400 rounded-lg flex flex-col relative mt-4 lg:mt-0 lg:h-fit">
           {/* PRICE DISPLAY */}
           <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-200 rounded-t-lg">
-            {book.discount_price && <span className="text-md line-through">${book.price}</span>}
-            <span className="text-2xl text-black font-bold break-words">
-              ${book.discount_price || book.price}
+            <span className={book.discount_price ? "text-md line-through" : "text-2xl text-black font-bold break-words"}>
+              ${book.price}
             </span>
+            {book.discount_price && (
+              <span className="text-2xl text-black font-bold break-words">
+                ${book.discount_price}
+              </span>
+            )}
           </div>
 
           {/* QUANTITY SELECTOR */}
           <div className='flex flex-col gap-4 p-4'>
-            <div>
+            <div className=''>
               <label className="block mb-2">Quantity</label>
-              <div className="flex items-center border border-gray-300 rounded">
-                <button
-                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border-r border-gray-300"
-                  onClick={decrementQuantity}
-                >
-                  -
-                </button>
-                <input
-                  type="text"
-                  className="w-full p-2 text-center outline-none"
-                  value={quantity}
-                  readOnly
-                />
-                <button
-                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border-l border-gray-300"
-                  onClick={incrementQuantity}
-                >
-                  +
-                </button>
-              </div>
+              <QuantitySelector
+                quantity={quantity}
+                onDecrement={decrementQuantity}
+                onIncrement={incrementQuantity}
+              />
             </div>
-            <Button className="w-full">Add to cart</Button>
+            <Button
+              className="w-full"
+              onClick={handleAddToCart}
+            >
+              Add to cart
+            </Button>
           </div>
         </div>
       </div>
@@ -259,68 +308,36 @@ const BookDetails = () => {
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
-                      onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                      onClick={prevPage}
                       className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     />
                   </PaginationItem>
 
-                  <PaginationItem>
-                    <PaginationLink
-                      isActive={currentPage === 1}
-                      onClick={() => handlePageChange(1)}
-                    >
-                      1
-                    </PaginationLink>
-                  </PaginationItem>
-
-                  {currentPage > 3 && (
-                    <PaginationItem>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                  )}
-
-                  {Array.from({ length: totalPages }).map((_, index) => {
-                    const pageNumber = index + 1;
-                    if (
-                      pageNumber !== 1 &&
-                      pageNumber !== totalPages &&
-                      pageNumber >= currentPage - 1 &&
-                      pageNumber <= currentPage + 1
-                    ) {
-                      return (
-                        <PaginationItem key={pageNumber}>
-                          <PaginationLink
-                            isActive={currentPage === pageNumber}
-                            onClick={() => handlePageChange(pageNumber)}
-                          >
-                            {pageNumber}
-                          </PaginationLink>
-                        </PaginationItem>
-                      );
-                    }
-                    return null;
+                  {[...Array(totalPages).keys()].map((_, index) => {
+                     const pageNumber = index + 1;
+                     if (pageNumber === 1 ||
+                         pageNumber === totalPages ||
+                         (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)) {
+                        return (
+                            <PaginationItem key={pageNumber}>
+                                <PaginationLink
+                                isActive={currentPage === pageNumber}
+                                onClick={() => handlePageChange(pageNumber)}
+                                >
+                                {pageNumber}
+                                </PaginationLink>
+                            </PaginationItem>
+                        );
+                     }
+                     if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
+                         return <PaginationItem key={`ellipsis-${pageNumber}`}><PaginationEllipsis /></PaginationItem>;
+                     }
+                     return null;
                   })}
-
-                  {currentPage < totalPages - 2 && (
-                    <PaginationItem>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                  )}
-
-                  {totalPages > 1 && (
-                    <PaginationItem>
-                      <PaginationLink
-                        isActive={currentPage === totalPages}
-                        onClick={() => handlePageChange(totalPages)}
-                      >
-                        {totalPages}
-                      </PaginationLink>
-                    </PaginationItem>
-                  )}
 
                   <PaginationItem>
                     <PaginationNext
-                      onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                      onClick={nextPage}
                       className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     />
                   </PaginationItem>
@@ -332,7 +349,7 @@ const BookDetails = () => {
 
         {/* REVIEW FORM */}
         <div className='w-full lg:w-[30%]'>
-          <ReviewForm book_id={parseInt(id || '0')} />
+          <ReviewForm book_id={numericId ?? 0} />
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ import {
     CarouselNext,
     CarouselPrevious,
 } from "../ui/carousel";
-import { getOnSale, OnSaleItem } from "../../api/onsale";
+import { getOnSale, OnSaleItem } from "../../api/book";
 
 const CarouselBar = () => {
     const [saleBooks, setSaleBooks] = useState<OnSaleItem[]>([]);

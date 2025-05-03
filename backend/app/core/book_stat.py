@@ -1,7 +1,7 @@
 from typing import List
 
 from app.db import BookStats
-from app.schema.review import ReviewRequest
+from app.schemas.review import ReviewRequest
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 

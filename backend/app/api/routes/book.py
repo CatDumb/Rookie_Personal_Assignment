@@ -1,5 +1,6 @@
 """Book-related API endpoints and operations."""
 
+from datetime import datetime
 from typing import Optional
 
 from app.core.book_stat import update_book_stats
@@ -9,7 +10,7 @@ from app.db.book import Book
 from app.db.bookstats import BookStats
 from app.db.category import Category
 from app.db.discount import Discount
-from app.schema.book import (
+from app.schemas.book import (
     BookDetail,
     BookDetailResponse,
     BookFilterRequest,
@@ -61,7 +62,13 @@ async def list_books(
     """
     try:
         query = (
-            db.query(Book, Author, Discount, Category)
+            db.query(
+                Book,
+                Author,
+                Category,
+                Discount,
+                BookStats,
+            )
             .join(Author, Book.author_id == Author.id)
             .join(Category, Book.category_id == Category.id)
             .outerjoin(
@@ -70,7 +77,7 @@ async def list_books(
                 & (Discount.discount_start_date <= func.current_date())
                 & (Discount.discount_end_date >= func.current_date()),
             )
-            .join(BookStats, Book.id == BookStats.id, isouter=True)
+            .outerjoin(BookStats, Book.id == BookStats.id)
         )
 
         parsed_category_ids = []
@@ -120,12 +127,12 @@ async def list_books(
             )
         elif filters.sort_by == "price_asc":
             query = query.order_by(
-                BookStats.lowest_price.asc(),
+                func.coalesce(BookStats.lowest_price, Book.book_price).asc(),
                 Book.book_title.asc(),
             )
         elif filters.sort_by == "price_desc":
             query = query.order_by(
-                BookStats.lowest_price.desc(),
+                func.coalesce(BookStats.lowest_price, Book.book_price).desc(),
                 Book.book_title.asc(),
             )
         else:
@@ -140,10 +147,10 @@ async def list_books(
 
         result = query.all()
 
-        books = []
+        books_data = []
         book_ids = []
-        for book, author, discount, _ in result:
-            books.append(
+        for book, author, _category, discount, _stats in result:
+            books_data.append(
                 DiscountedBook(
                     id=book.id,
                     name=book.book_title,
@@ -152,14 +159,14 @@ async def list_books(
                     discount_price=discount.discount_price if discount else None,
                     cover_photo=book.book_cover_photo,
                     discount_amount=(book.book_price - discount.discount_price)
-                    if discount
+                    if discount and discount.discount_price is not None
                     else 0,
                 ),
             )
             book_ids.append(book.id)
 
         response = PaginatedBooksResponse(
-            items=books,
+            items=books_data,
             total=total_items,
             page=filters.page,
             per_page=filters.per_page,
@@ -197,8 +204,6 @@ async def get_books_on_sale(db: Session = Depends(get_db)):
         HTTPException: If there's an error retrieving books (500)
     """
     try:
-        from datetime import datetime
-
         current_date = datetime.now().date()
 
         books = (
@@ -243,16 +248,13 @@ async def get_books_on_sale(db: Session = Depends(get_db)):
             for item in sorted_books
         ]
 
-        book_ids = [item.id for item in on_sale_books]
-        await update_book_stats(db, book_ids)
-
         return BooksOnSaleResponse(items=on_sale_books)
 
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred: {str(e)}",
+            detail=f"Error retrieving books on sale: {str(e)}",
         )
 
 
@@ -275,6 +277,7 @@ async def get_recommended_books(db: Session = Depends(get_db)):
         HTTPException: If there's an error retrieving books (500)
     """
     try:
+        current_date = datetime.now().date()
         books = (
             db.query(Book, Author, BookStats, Discount)
             .join(BookStats, Book.id == BookStats.id)
@@ -282,8 +285,8 @@ async def get_recommended_books(db: Session = Depends(get_db)):
             .outerjoin(
                 Discount,
                 (Book.id == Discount.book_id)
-                & (Discount.discount_start_date <= func.current_date())
-                & (Discount.discount_end_date >= func.current_date()),
+                & (Discount.discount_start_date <= current_date)
+                & (Discount.discount_end_date >= current_date),
             )
             .filter(BookStats.review_count > 0)
             .order_by(BookStats.avg_rating.desc(), BookStats.lowest_price.asc())
@@ -314,7 +317,7 @@ async def get_recommended_books(db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred: {str(e)}",
+            detail=f"Error retrieving recommended books: {str(e)}",
         )
 
 
@@ -337,15 +340,16 @@ async def get_popular_books(db: Session = Depends(get_db)):
         HTTPException: If there's an error retrieving books (500)
     """
     try:
+        current_date = datetime.now().date()
         books = (
-            db.query(Book, Author, Discount)
+            db.query(Book, Author, BookStats, Discount)
             .join(BookStats, Book.id == BookStats.id)
             .join(Author, Book.author_id == Author.id)
             .outerjoin(
                 Discount,
                 (Book.id == Discount.book_id)
-                & (Discount.discount_start_date <= func.current_date())
-                & (Discount.discount_end_date >= func.current_date()),
+                & (Discount.discount_start_date <= current_date)
+                & (Discount.discount_end_date >= current_date),
             )
             .order_by(
                 func.coalesce(BookStats.review_count, 0).desc(),
@@ -367,7 +371,7 @@ async def get_popular_books(db: Session = Depends(get_db)):
                 .filter(BookStats.id == book.id)
                 .scalar(),
             )
-            for book, author, discount in books
+            for book, author, stats, discount in books
         ]
 
         book_ids = [book.id for book, _, _ in books]
@@ -379,7 +383,7 @@ async def get_popular_books(db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred: {str(e)}",
+            detail=f"Error retrieving popular books: {str(e)}",
         )
 
 
@@ -404,10 +408,18 @@ async def get_book_by_id(book_id: int, db: Session = Depends(get_db)):
         HTTPException: If book not found (404) or other errors (500)
     """
     try:
+        current_date = datetime.now().date()
         book_data = (
-            db.query(Book, Category, Author)
-            .join(Category, Book.category_id == Category.id)
+            db.query(Book, Author, Category, BookStats, Discount)
             .join(Author, Book.author_id == Author.id)
+            .join(Category, Book.category_id == Category.id)
+            .outerjoin(BookStats, Book.id == BookStats.id)
+            .outerjoin(
+                Discount,
+                (Book.id == Discount.book_id)
+                & (Discount.discount_start_date <= current_date)
+                & (Discount.discount_end_date >= current_date),
+            )
             .filter(Book.id == book_id)
             .first()
         )
@@ -418,38 +430,32 @@ async def get_book_by_id(book_id: int, db: Session = Depends(get_db)):
                 detail=f"Book with id {book_id} not found",
             )
 
-        book, category, author = book_data
+        book, author, category, stats, discount = book_data
 
-        discount = (
-            db.query(Discount)
-            .filter(
-                Discount.book_id == book_id,
-                Discount.discount_start_date <= func.current_date(),
-                Discount.discount_end_date >= func.current_date(),
-            )
-            .first()
-        )
+        book_detail_data = {
+            "id": book.id,
+            "name": book.book_title,
+            "author": author.author_name,
+            "category": category.category_name,
+            "price": book.book_price,
+            "summary": book.book_summary,
+            "cover_photo": book.book_cover_photo,
+            "discount_price": discount.discount_price if discount else None,
+            "average_rating": stats.avg_rating if stats else 0.0,
+            "review_count": stats.review_count if stats else 0,
+        }
 
-        stats = db.query(BookStats).filter(BookStats.id == book_id).first()
+        book_detail = BookDetail(**book_detail_data)
+        response = BookDetailResponse(book=book_detail)
 
-        return BookDetailResponse(
-            book=BookDetail(
-                id=book.id,
-                name=book.book_title,
-                author=author.author_name,
-                price=float(book.book_price),
-                discount_price=float(discount.discount_price) if discount else None,
-                cover_photo=book.book_cover_photo,
-                summary=book.book_summary,
-                average_rating=float(stats.avg_rating) if stats else 0,
-                review_count=stats.review_count if stats else 0,
-                category=category.category_name,
-            ),
-        )
+        await update_book_stats(db, [book_id])
+
+        return response
     except HTTPException:
         raise
     except Exception as e:
+        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred: {str(e)}",
+            detail=f"Error retrieving book details: {str(e)}",
         )

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BookCard } from "../ui/card";
-import { getRecommendations, RecommendResponse, getPopular, PopularResponse } from "../../api/recommend";
+import { getRecommendations, RecommendResponse, getPopular, PopularResponse } from "../../api/book";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
 function Featured() {
@@ -83,7 +83,7 @@ function Featured() {
                     author={book.author}
                     price={book.price}
                     originalPrice={book.discount_price || undefined}
-                    imageUrl={book.cover_photo}
+                    imageUrl={book.cover_photo || null}
                   />
                 ))}
               </div>
@@ -105,7 +105,7 @@ function Featured() {
                     author={book.author}
                     price={book.price}
                     originalPrice={book.discount_price || undefined}
-                    imageUrl={book.cover_photo}
+                    imageUrl={book.cover_photo || null}
                   />
                 ))}
               </div>

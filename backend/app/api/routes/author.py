@@ -1,7 +1,8 @@
 """Author-related API endpoints."""
 
 from app.core.db_config import get_db
-from app.db.author import Author
+from app.db.author import Author as AuthorModel
+from app.schemas.author import AuthorRead
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -14,7 +15,7 @@ router = APIRouter(
 @router.get(
     "/",
     status_code=status.HTTP_200_OK,
-    response_model=list[Author],
+    response_model=list[AuthorRead],
 )
 async def get_authors(db: Session = Depends(get_db)):
     """
@@ -24,23 +25,14 @@ async def get_authors(db: Session = Depends(get_db)):
         db (Session): Database session dependency
 
     Returns:
-        list[Author]: List of author objects containing id, author_name, and author_bio
+        list[AuthorRead]: List of author objects containing id, author_name, and author_bio
 
     Raises:
         HTTPException: If there's an error while fetching authors (500)
     """
     try:
-        authors = db.query(Author).order_by(Author.author_name).all()
-
-        result = [
-            {
-                "id": author.id,
-                "author_name": author.author_name,
-                "author_bio": author.author_bio,
-            }
-            for author in authors
-        ]
-        return result
+        authors = db.query(AuthorModel).order_by(AuthorModel.author_name).all()
+        return authors
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

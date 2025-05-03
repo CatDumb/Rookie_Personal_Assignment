@@ -94,7 +94,7 @@ interface BookCardProps extends Omit<React.ComponentProps<"div">, "id"> {
   author: string;
   price: number;
   originalPrice?: number;
-  imageUrl: string;
+  imageUrl: string | null;
   onSale?: boolean;
 }
 

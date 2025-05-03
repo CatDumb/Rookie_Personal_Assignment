@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 
 from app.core.db_config import get_db
 from app.db.user import User as UserModel
-from app.schema.token import TokenData
-from app.schema.user import UserInDB, UserInfoReturn
+from app.schemas.token import TokenData
+from app.schemas.user import UserInDB, UserInfoReturn
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -92,17 +92,23 @@ def authenticate_user(db: Session, email: str, password: str):
 
 
 def create_access_token(
-    data: UserInfoReturn,
+    data: dict | UserInfoReturn,
     expires_delta: timedelta | None = None,
 ) -> str:
     """
     Create a JWT access token including the user's public information.
     Explicitly adds a 'sub' (subject) claim to the token payload.
     """
-    # Convert the public user data to a dictionary
-    to_encode = data.dict()
+    # Convert the public user data to a dictionary if it's not already one
+    if hasattr(data, "model_dump"):
+        to_encode = data.model_dump()
+    else:
+        to_encode = data.copy()
+
     # Add subject claim explicitly with the user email as unique identifier
-    to_encode["sub"] = data.email
+    if "sub" not in to_encode:
+        to_encode["sub"] = to_encode.get("email")
+
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
@@ -113,14 +119,20 @@ def create_access_token(
 
 
 def create_refresh_token(
-    data: UserInfoReturn,
+    data: dict | UserInfoReturn,
     expires_delta: timedelta | None = None,
 ) -> str:
     """
     Create a JWT refresh token with a longer expiry time.
     This token will be used to get new access tokens.
     """
-    to_encode = {"sub": data.email}
+    # If it's a Pydantic model, get the email from it, otherwise from dict
+    if hasattr(data, "email"):
+        email = data.email
+    else:
+        email = data.get("email")
+
+    to_encode = {"sub": email}
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:

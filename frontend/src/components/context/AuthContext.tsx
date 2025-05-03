@@ -113,23 +113,55 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Check if user is logged in on initial load
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    const storedFirstName = localStorage.getItem('first_name');
-    const storedLastName = localStorage.getItem('last_name');
+    const checkAuth = async () => {
+      const accessToken = localStorage.getItem('access_token');
+      const refreshTokenValue = localStorage.getItem('refresh_token');
+      const storedFirstName = localStorage.getItem('first_name');
+      const storedLastName = localStorage.getItem('last_name');
 
-    if (token) {
-      const isValid = checkAndScheduleRefresh();
-      if (isValid) {
-        setIsLoggedIn(true);
-        setFirstName(storedFirstName);
-        setLastName(storedLastName);
-      } else {
-        // Token is invalid, try refresh
-        handleRefreshToken();
+      // If we have an access token, check if it's valid
+      if (accessToken) {
+        const isValid = checkAndScheduleRefresh();
+        if (isValid) {
+          console.log('User automatically logged in with valid access token');
+          setIsLoggedIn(true);
+          setFirstName(storedFirstName);
+          setLastName(storedLastName);
+          setLoading(false);
+          return;
+        }
       }
-    }
 
-    setLoading(false);
+      // If access token is missing or invalid but we have a refresh token, try to refresh
+      if (refreshTokenValue) {
+        try {
+          console.log('Attempting to refresh token on page load');
+          const data = await refreshToken(refreshTokenValue);
+          if (data && data.access_token) {
+            console.log('User automatically logged in with refreshed token');
+            localStorage.setItem('access_token', data.access_token);
+
+            // Since refresh response doesn't include these values, we use existing stored values
+            setIsLoggedIn(true);
+            setFirstName(storedFirstName);
+            setLastName(storedLastName);
+
+            // Schedule token refresh
+            checkAndScheduleRefresh();
+          } else {
+            console.log('Token refresh failed, logging out');
+            handleLogout();
+          }
+        } catch (err) {
+          console.error('Failed to refresh token on initial load:', err);
+          handleLogout();
+        }
+      }
+
+      setLoading(false);
+    };
+
+    checkAuth();
 
     // Clean up timer on unmount
     return () => {
@@ -182,6 +214,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('first_name');
     localStorage.removeItem('last_name');
+    localStorage.removeItem('cart');
 
     // Clear refresh timer
     if (refreshTimerId !== null) {
