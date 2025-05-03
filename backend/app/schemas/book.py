@@ -6,10 +6,10 @@ from pydantic import BaseModel, Field
 
 # ----- Base Schema -----
 class BookBase(BaseModel):
-    name: str = Field(..., alias="book_title")
-    summary: Optional[str] = Field(None, alias="book_summary")
-    cover_photo: Optional[str] = Field(None, alias="book_cover_photo")
-    price: float = Field(...)
+    book_title: str = Field(...)
+    book_summary: Optional[str] = Field(None)
+    book_cover_photo: Optional[str] = Field(None)
+    book_price: float = Field(...)
     author_id: Optional[int] = None
     category_id: Optional[int] = None
 
@@ -24,8 +24,8 @@ class BookCreate(BookBase):
 # ----- Schema for Updating (If Admin endpoint exists) -----
 class BookUpdate(BookBase):
     # All fields optional for update
-    name: Optional[str] = Field(None, alias="book_title")
-    price: Optional[float] = Field(None, alias="book_price")
+    book_title: Optional[str] = Field(None)
+    book_price: Optional[float] = Field(None)
     author_id: Optional[int] = None
     category_id: Optional[int] = None
 
@@ -38,10 +38,10 @@ class BookRead(BookBase):
     id: int
     author: str  # Flattened author name
     category: Optional[str] = None  # Flattened category name
-    price: float
+    book_price: float
     discount_price: Optional[float] = None  # Populated by join
-    average_rating: Optional[float] = Field(0.0, alias="avg_rating")  # From BookStats
-    review_count: Optional[int] = Field(0, alias="review_count")  # From BookStats
+    avg_rating: Optional[float] = Field(0.0)  # From BookStats
+    review_count: Optional[int] = Field(0)  # From BookStats
 
     class Config:
         from_attributes = True
@@ -66,11 +66,11 @@ class BookDetailResponse(BaseModel):
 # ----- Common base for all book display types -----
 class BookDisplayBase(BaseModel):
     id: int
-    name: str
+    book_title: str
     author: str
-    price: float
+    book_price: float
     discount_price: Optional[float] = None
-    cover_photo: Optional[str] = None
+    book_cover_photo: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -83,8 +83,8 @@ class DiscountedBook(BookDisplayBase):
 
 # Schema for recommended books
 class RatedBook(BookDisplayBase):
-    average_rating: float
-    total_reviews: int  # Matches frontend field name
+    avg_rating: float
+    review_count: int  # Matches frontend field name
 
 
 # Schema for popular books
@@ -116,11 +116,19 @@ class PopularBooksResponse(ItemsResponse[PopularBook]):
 # ----- Request Schema for Filtering -----
 class BookFilterRequest(BaseModel):
     page: int = 1
-    per_page: int = 10
+    per_page: int = 15
     category_id: Optional[int] = None
     author_id: Optional[int] = None
     category_ids: Optional[List[int]] = None  # Allow multiple IDs
     author_ids: Optional[List[int]] = None  # Allow multiple IDs
+    category_ids_csv: Optional[str] = Field(
+        None,
+        description="Comma-separated list of category IDs",
+    )
+    author_ids_csv: Optional[str] = Field(
+        None,
+        description="Comma-separated list of author IDs",
+    )
     rating_min: Optional[float] = Field(None, ge=0, le=5)
     sort_by: Optional[str] = Field(
         None,

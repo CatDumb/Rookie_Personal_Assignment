@@ -8,8 +8,17 @@ interface CartItem {
   quantity: number;
 }
 
+// Extended BookDetail with legacy fields for backward compatibility
+interface BookDetailWithLegacy extends BookDetail {
+  price?: number;
+  name?: string;
+  cover_photo?: string | null;
+  average_rating?: number;
+  summary?: string;
+}
+
 // Interface for the cart item combined with full book details
-export interface CartItemWithDetails extends BookDetail {
+export interface CartItemWithDetails extends BookDetailWithLegacy {
   quantity: number;
   order_item_total: number;
 }
@@ -59,17 +68,28 @@ export const useCartDetails = () => {
 
       const detailPromises = cart.map(item =>
         getBookDetails(item.id).then(response => {
-          const price = response.book.discount_price ?? response.book.price;
-          return {
+          // Get the effective price for calculation
+          const effectivePrice = response.book.discount_price ?? response.book.book_price;
+
+          // Create the cart item with details including type assertion for safety
+          const bookWithDetails = {
             ...response.book,
             quantity: item.quantity,
-            order_item_total: price * item.quantity
-          };
+            order_item_total: effectivePrice * item.quantity,
+            // Add legacy fields
+            price: response.book.book_price,
+            name: response.book.book_title,
+            cover_photo: response.book.book_cover_photo,
+            average_rating: response.book.avg_rating,
+            summary: response.book.book_summary
+          } as unknown as CartItemWithDetails;
+
+          return bookWithDetails;
         })
       );
 
       const detailedItems = await Promise.all(detailPromises);
-      updateCartState(detailedItems); // Use the update function
+      updateCartState(detailedItems as CartItemWithDetails[]); // Use the update function
 
     } catch (err) {
       console.error('Failed to fetch cart details:', err);
@@ -100,28 +120,29 @@ export const useCartDetails = () => {
 
         // Prepare for potential removal confirmation
         if (newQuantity <= 0) {
-          itemToRemove = item; // Store item details for confirmation message
+          itemToRemove = { ...item }; // Store item details for confirmation message
           return item; // Keep item for now, handle removal after confirmation
         }
 
-        const price = item.discount_price ?? item.price;
+        const price = item.discount_price ?? item.book_price;
         return {
           ...item,
           quantity: newQuantity,
           order_item_total: price * newQuantity
-        };
+        } as CartItemWithDetails;
       }
       return item;
     });
 
     // Handle removal confirmation
     if (itemToRemove) {
+      const bookTitle = itemToRemove.book_title || itemToRemove.name || 'this item';
       const confirmRemoval = window.confirm(
-        `Are you sure you want to remove "${(itemToRemove as CartItemWithDetails).name}" from your cart?`
+        `Are you sure you want to remove "${bookTitle}" from your cart?`
       );
       if (confirmRemoval) {
         // Filter out the confirmed item for removal
-        const finalItems = updatedItems.filter(item => item.id !== (itemToRemove as CartItemWithDetails).id);
+        const finalItems = updatedItems.filter(item => item.id !== itemToRemove.id);
         updateCartState(finalItems);
       } else {
         // If removal is cancelled, no state update is needed
@@ -138,9 +159,10 @@ export const useCartDetails = () => {
     const itemToRemove = cartItemsWithDetails.find(item => item.id === itemId);
     if (!itemToRemove) return; // Item not found
 
+    const bookTitle = itemToRemove.book_title || itemToRemove.name || 'this item';
     const confirmRemoval = window.confirm(
-        `Are you sure you want to remove "${itemToRemove.name}" from your cart?`
-      );
+      `Are you sure you want to remove "${bookTitle}" from your cart?`
+    );
 
     if (confirmRemoval) {
         const updatedItems = cartItemsWithDetails.filter(item => item.id !== itemId);

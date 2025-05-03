@@ -6,17 +6,17 @@ import api from "./client";
 // Base interface for common book properties
 export interface BaseBook {
   id: number;
-  name: string;
+  book_title: string;
   author: string;
-  price: number;
+  book_price: number;
   discount_price: number | null;
-  cover_photo: string | null; // Use string | null for broader compatibility
+  book_cover_photo: string | null;
 }
 
 // Extended interface for Book Details
 export interface BookDetail extends BaseBook {
-  summary: string;
-  average_rating: number;
+  book_summary: string;
+  avg_rating: number;
   review_count: number;
   category: string;
 }
@@ -35,14 +35,12 @@ export interface OnSaleResponse {
 }
 
 // Extended interface for Recommendations
-// Note: API might guarantee non-null cover_photo here, but BaseBook allows null
 export interface RecommendResponse extends BaseBook {
-  average_rating: number;
-  total_reviews: number;
+  avg_rating: number;
+  review_count: number;
 }
 
 // Extended interface for Popular books
-// Note: API might guarantee non-null cover_photo here, but BaseBook allows null
 export interface PopularResponse extends BaseBook {
   review_count?: number; // Optional field for popular books
 }
@@ -53,9 +51,29 @@ export interface PopularResponse extends BaseBook {
 export function getBookDetails(bookId: number) {
   return api.get<BookDetailResponse>(`api/book/${bookId}`)
     .then(res => {
-      // Ensure cover_photo is never null
+      // Ensure book_cover_photo is never null
       if (res.data && res.data.book) {
-        res.data.book.cover_photo = res.data.book.cover_photo || "/book.png";
+        console.log('Book details - Cover photo before:', res.data.book.book_cover_photo);
+
+        // Set a fallback for book_cover_photo
+        res.data.book.book_cover_photo = res.data.book.book_cover_photo || "/book.png";
+
+        // For backward compatibility with components that use the old field names
+        // Add legacy field names to the book object as the codebase transitions
+        const bookWithLegacyFields = res.data.book as BookDetail & {
+          cover_photo: string;
+          price: number;
+          average_rating: number;
+          summary: string;
+        };
+
+        // Set compatibility fields for components still using old names
+        bookWithLegacyFields.cover_photo = res.data.book.book_cover_photo;
+        bookWithLegacyFields.price = res.data.book.book_price;
+        bookWithLegacyFields.average_rating = res.data.book.avg_rating;
+        bookWithLegacyFields.summary = res.data.book.book_summary;
+
+        console.log('Book details - Cover photo after:', res.data.book.book_cover_photo);
       }
       return res.data;
     });
@@ -68,11 +86,11 @@ export function getOnSale() {
       if (res.data && res.data.items && Array.isArray(res.data.items)) {
         return res.data.items.map(item => ({
           id: item.id,
-          name: item.name,
+          book_title: item.book_title,
           author: item.author,
-          price: item.price,
+          book_price: item.book_price,
           discount_price: item.discount_price,
-          cover_photo: item.cover_photo || "/book.png",
+          book_cover_photo: item.book_cover_photo || "/book.png",
           discount_amount: item.discount_amount || 0,
         }));
       }
@@ -88,13 +106,13 @@ export function getRecommendations() {
       if (res.data && res.data.items && Array.isArray(res.data.items)) {
         return res.data.items.map(item => ({
           id: item.id,
-          name: item.name,
+          book_title: item.book_title,
           author: item.author,
-          price: item.price,
+          book_price: item.book_price,
           discount_price: item.discount_price,
-          cover_photo: item.cover_photo,
-          average_rating: item.average_rating,
-          total_reviews: item.total_reviews || 0 // Ensure we always have a value
+          book_cover_photo: item.book_cover_photo,
+          avg_rating: item.avg_rating,
+          review_count: item.review_count || 0
         }));
       }
       console.error("Unexpected response structure for recommendations:", res.data);
@@ -109,11 +127,11 @@ export function getPopular() {
       if (res.data && res.data.items && Array.isArray(res.data.items)) {
         return res.data.items.map(item => ({
           id: item.id,
-          name: item.name,
+          book_title: item.book_title,
           author: item.author,
-          price: item.price,
+          book_price: item.book_price,
           discount_price: item.discount_price,
-          cover_photo: item.cover_photo,
+          book_cover_photo: item.book_cover_photo,
           review_count: item.review_count
         }));
       }

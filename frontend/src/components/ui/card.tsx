@@ -116,7 +116,10 @@ const BookCard = React.forwardRef<HTMLDivElement, BookCardProps>(
               src={imageUrl || defaultImage}
               alt={title}
               className="object-contain w-full h-full p-2" // Changed to object-contain and added padding
-              onError={(e) => { e.currentTarget.src = defaultImage }}
+              onError={(e) => {
+                console.log("Card image load error for:", imageUrl);
+                e.currentTarget.src = defaultImage;
+              }}
               loading="lazy"
             />
           </CardContent>

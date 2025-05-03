@@ -49,7 +49,7 @@ const CarouselBar = () => {
     }
 
     // Filter out empty items and ensure minimum 1 item
-    const validBooks = saleBooks.filter(book => book?.name);
+    const validBooks = saleBooks.filter(book => book?.book_title);
 
     if (validBooks.length === 0) {
         return (
@@ -80,11 +80,11 @@ const CarouselBar = () => {
                                     <div className="flex items-center justify-center">
                                         <BookCard
                                             id={book.id}
-                                            title={book.name}
+                                            title={book.book_title}
                                             author={book.author}
-                                            price={book.price}
+                                            price={book.book_price}
                                             originalPrice={book.discount_price ?? undefined}
-                                            imageUrl={book.cover_photo ?? ""}
+                                            imageUrl={book.book_cover_photo ?? ""}
                                         />
                                     </div>
                                 </CarouselItem>

@@ -1,3 +1,4 @@
+// --- IMPORTS ---
 import { CartHeader } from "../components/Header/CartHeader";
 import { useCartDetails } from "../hooks/useCartDetails";
 import { Button } from "@/components/ui/button";
@@ -6,21 +7,10 @@ import { createOrder } from "../api/order";
 import { useState } from "react";
 import { useAuth } from "../components/Context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
 import api from "../api/client";
 import { dispatchCartUpdateEvent } from "../components/Context/CartContext";
 
-// JWT payload interface
-interface JwtPayload {
-  sub: string;
-  email: string;
-  first_name?: string;
-  last_name?: string;
-  admin?: boolean;
-  exp: number;
-  [key: string]: string | number | boolean | undefined;
-}
-
+// --- TYPES & INTERFACES ---
 // User details interface for the response
 interface UserDetails {
   id: number;
@@ -30,6 +20,7 @@ interface UserDetails {
   admin: boolean;
 }
 
+// --- COMPONENT DEFINITION ---
 export default function CartPage() {
     const { cartItemsWithDetails, orderTotal, loading, error, updateItemQuantity, refreshCart } = useCartDetails();
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -60,41 +51,10 @@ export default function CartPage() {
         setOrderError(null);
 
         try {
-            // Get the current user's details from the token's email
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                throw new Error("No access token found");
-            }
-
-            // Decode the JWT token to get the email
-            const decoded = jwtDecode<JwtPayload>(token);
-            console.log("Token payload:", decoded);
-
-            // Use the email to get user details from API
-            let userId;
-            try {
-                const response = await api.get<UserDetails>('/api/user/profile');
-                userId = response.data.id;
-                console.log("Got user ID:", userId);
-            } catch (error) {
-                // If the profile endpoint fails, use a fallback approach
-                console.warn("Failed to fetch user profile:", error);
-
-                // Try to extract email from token and query user by email
-                try {
-                    const email = decoded.email || decoded.sub;
-                    if (!email) {
-                        throw new Error("No email found in token");
-                    }
-
-                    // For demonstration purposes, use ID 1 since we can't query by email easily
-                    console.warn("Using default user ID 1 for demo purposes");
-                    userId = 1;
-                } catch (err) {
-                    console.error("Could not determine user ID:", err);
-                    throw new Error("Could not determine user ID");
-                }
-            }
+            // Get the current user's details from the profile endpoint
+            const response = await api.get<UserDetails>('/api/user/profile');
+            const userId = response.data.id;
+            console.log("Got user ID:", userId);
 
             // Prepare order data with user_id
             const orderData = {

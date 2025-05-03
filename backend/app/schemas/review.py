@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from app.schemas.base import PaginatedResponse
 from pydantic import BaseModel, Field
 
 
@@ -14,23 +15,30 @@ class ReviewBase(BaseModel):
 
 
 # ----- Request Schema (for creating) -----
-class ReviewRequest(ReviewBase):
+class ReviewPostRequest(ReviewBase):
     # Inherits fields from ReviewBase
     # review_date might be set by client or server, keep optional here
     review_date: Optional[datetime] = Field(default_factory=datetime.now)
 
 
-# ----- Response/Read Schema -----
-class ReviewRead(ReviewBase):
-    id: int  # Add review ID
-    # review_date is definitely set when reading
-    review_date: datetime
-
-    class Config:
-        from_attributes = True
-
-
 # Match the response model name used in the route
-class ReviewResponse(ReviewRead):
+class ReviewPostResponse(ReviewBase):
     # Inherits all fields from ReviewRead
     pass
+
+
+class PaginatedReviewsResponse(PaginatedResponse[ReviewBase]):
+    pass
+
+
+class ReviewFilterRequest(BaseModel):
+    book_id: int = Field(..., description="Book ID")
+    page: int = Field(1, ge=1, description="Page number")
+    per_page: int = Field(5, description="Items per page", enum=[5, 15, 20, 25])
+    rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Filter by rating star (1-5)",
+    )
+    sort_order: str = Field("newest", description="Sort order: 'newest' or 'oldest'")

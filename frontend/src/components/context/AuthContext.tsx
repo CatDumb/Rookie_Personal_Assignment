@@ -48,32 +48,42 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const checkAndScheduleRefresh = () => {
     try {
       const token = localStorage.getItem('access_token');
-      if (!token) return false;
+      if (!token) {
+        console.log('No access token found');
+        return false;
+      }
 
       // Decode the token to get expiration
       const decoded = jwtDecode<JwtPayload>(token);
-
-      // Check if token is expired or about to expire
-      const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+      const currentTime = Math.floor(Date.now() / 1000);
       const expiryTime = decoded.exp;
       const timeUntilExpiry = expiryTime - currentTime;
 
+      console.log(`Token expiration check:
+        - Current time: ${new Date(currentTime * 1000).toISOString()}
+        - Expiry time: ${new Date(expiryTime * 1000).toISOString()}
+        - Time until expiry: ${timeUntilExpiry} seconds`);
+
       // If token is expired, try to refresh it immediately
       if (timeUntilExpiry <= 0) {
+        console.log('Access token has expired, attempting refresh...');
         handleRefreshToken();
         return false;
       }
 
       // Schedule refresh 1 minute before expiry (or immediately if less than 1 minute)
       const refreshTime = Math.max(0, timeUntilExpiry - 60) * 1000;
+      console.log(`Scheduling token refresh in ${refreshTime / 1000} seconds`);
 
       // Clear any existing timer
       if (refreshTimerId !== null) {
         window.clearTimeout(refreshTimerId);
+        console.log('Cleared existing refresh timer');
       }
 
       // Set new timer for refresh
       const timerId = window.setTimeout(() => {
+        console.log('Scheduled token refresh triggered');
         handleRefreshToken();
       }, refreshTime);
 
@@ -89,20 +99,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const refreshTokenValue = localStorage.getItem('refresh_token');
       if (!refreshTokenValue) {
-        // No refresh token, logout
+        console.log('No refresh token found, logging out');
         handleLogout();
         return;
       }
 
+      console.log('Attempting to refresh access token using refresh token');
       const data = await refreshToken(refreshTokenValue);
 
       if (data && data.access_token) {
+        console.log('Successfully refreshed access token');
         localStorage.setItem('access_token', data.access_token);
 
         // Schedule the next refresh
         checkAndScheduleRefresh();
       } else {
-        // Refresh failed, logout
+        console.log('Token refresh failed: No new access token received');
         handleLogout();
       }
     } catch (error) {

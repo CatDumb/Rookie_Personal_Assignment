@@ -127,7 +127,7 @@ faker = Faker()
 with Session(engine) as session:
     # Authors
     authors = []
-    for _ in range(20):
+    for _ in range(20 * 10):
         a = Author(author_name=faker.name(), author_bio=faker.text(max_nb_chars=200))
         session.add(a)
         authors.append(a)
@@ -135,7 +135,14 @@ with Session(engine) as session:
 
     # Categories
     categories = []
-    for name in [faker.word().title() for _ in range(20)]:
+    category_names = set()
+    # Generate unique category names
+    for _ in range(20 * 10):
+        name = faker.word().title()
+        # Ensure uniqueness
+        while name in category_names:
+            name = faker.word().title()
+        category_names.add(name)
         c = Category(category_name=name, category_desc=faker.sentence())
         session.add(c)
         categories.append(c)
@@ -143,7 +150,7 @@ with Session(engine) as session:
 
     # Users
     users = []
-    for _ in range(20):
+    for _ in range(20 * 10):
         plain_password = "string"
         hashed_password = get_password_hash(plain_password)  # Hash the password
         u = User(
@@ -159,7 +166,7 @@ with Session(engine) as session:
 
     # Books
     books = []
-    for _ in range(100):
+    for _ in range(100 * 10):
         title = faker.sentence(nb_words=4).rstrip(".")
         price = round(random.uniform(5, 100), 2)
 
@@ -168,7 +175,8 @@ with Session(engine) as session:
         if random.random() < 0.15:
             photo = "/book.png"  # Use default image instead of NULL
         else:
-            photo = faker.image_url()  # Generate a random image URL
+            # Generate a random image URL from Lorem Picsum
+            photo = f"https://picsum.photos/id/{random.randint(1, 1000)}/400/600"
 
         b = Book(
             category_id=random.choice(categories).id,
@@ -239,7 +247,7 @@ with Session(engine) as session:
 
     # Orders & OrderItems
     orders = []
-    for _ in range(50):
+    for _ in range(50 * 10):
         user = random.choice(users)
         order_date = faker.date_time_between(start_date="-30d", end_date="now")
         o = Order(user_id=user.id, order_date=order_date, order_total=0)
@@ -263,7 +271,7 @@ with Session(engine) as session:
 
     # Reviews
     for book in books:
-        for _ in range(random.randint(0, 5)):
+        for _ in range(random.randint(0, 5 * 10)):
             # Ensure rating_star is an integer between 1-5
             rating = random.randint(1, 5)
             r = Review(

@@ -77,13 +77,13 @@ function Featured() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10 justify-items-center">
                 {recommendedBooks.map((book) => (
                   <BookCard
-                    id = {book.id}
+                    id={book.id}
                     key={book.id}
-                    title={book.name}
+                    title={book.book_title}
                     author={book.author}
-                    price={book.price}
+                    price={book.book_price}
                     originalPrice={book.discount_price || undefined}
-                    imageUrl={book.cover_photo || null}
+                    imageUrl={book.book_cover_photo || null}
                   />
                 ))}
               </div>
@@ -101,11 +101,11 @@ function Featured() {
                   <BookCard
                     id={book.id}
                     key={book.id}
-                    title={book.name}
+                    title={book.book_title}
                     author={book.author}
-                    price={book.price}
+                    price={book.book_price}
                     originalPrice={book.discount_price || undefined}
-                    imageUrl={book.cover_photo || null}
+                    imageUrl={book.book_cover_photo || null}
                   />
                 ))}
               </div>

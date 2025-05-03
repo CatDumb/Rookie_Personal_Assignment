@@ -1,7 +1,6 @@
 """Book-related API endpoints and operations."""
 
 from datetime import datetime
-from typing import Optional
 
 from app.core.book_stat import update_book_stats
 from app.core.db_config import get_db
@@ -22,7 +21,7 @@ from app.schemas.book import (
     RatedBook,
     RecommendedBooksResponse,
 )
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -35,23 +34,15 @@ router = APIRouter(
 @router.get("/", response_model=PaginatedBooksResponse)
 async def list_books(
     filters: BookFilterRequest = Depends(),
-    category_ids: Optional[str] = Query(
-        None,
-        description="Comma-separated list of category IDs",
-    ),
-    author_ids: Optional[str] = Query(
-        None,
-        description="Comma-separated list of author IDs",
-    ),
     db: Session = Depends(get_db),
 ):
     """
     Get a paginated list of books with filtering and sorting options.
 
     Args:
-        filters (BookFilterRequest): Filtering and pagination parameters
-        category_ids (str, optional): Comma-separated list of category IDs to filter by
-        author_ids (str, optional): Comma-separated list of author IDs to filter by
+        filters (BookFilterRequest): Filtering and pagination parameters including:
+            - category_ids_csv: Comma-separated list of category IDs
+            - author_ids_csv: Comma-separated list of author IDs
         db (Session): Database session dependency
 
     Returns:
@@ -80,36 +71,43 @@ async def list_books(
             .outerjoin(BookStats, Book.id == BookStats.id)
         )
 
+        # Always prioritize CSV string parameters over direct parameters
         parsed_category_ids = []
-        if category_ids:
+        if filters.category_ids_csv:
             try:
                 parsed_category_ids = [
-                    int(id.strip()) for id in category_ids.split(",") if id.strip()
+                    int(id.strip())
+                    for id in filters.category_ids_csv.split(",")
+                    if id.strip()
                 ]
+                # Apply category filter from CSV
+                query = query.filter(Book.category_id.in_(parsed_category_ids))
             except ValueError:
                 pass
-
-        parsed_author_ids = []
-        if author_ids:
-            try:
-                parsed_author_ids = [
-                    int(id.strip()) for id in author_ids.split(",") if id.strip()
-                ]
-            except ValueError:
-                pass
-
-        if parsed_category_ids:
-            query = query.filter(Book.category_id.in_(parsed_category_ids))
         elif filters.category_ids and len(filters.category_ids) > 0:
+            # Apply category filter from array
             query = query.filter(Book.category_id.in_(filters.category_ids))
         elif filters.category_id is not None:
+            # Apply single category filter
             query = query.filter(Book.category_id == filters.category_id)
 
-        if parsed_author_ids:
-            query = query.filter(Book.author_id.in_(parsed_author_ids))
+        parsed_author_ids = []
+        if filters.author_ids_csv:
+            try:
+                parsed_author_ids = [
+                    int(id.strip())
+                    for id in filters.author_ids_csv.split(",")
+                    if id.strip()
+                ]
+                # Apply author filter from CSV
+                query = query.filter(Book.author_id.in_(parsed_author_ids))
+            except ValueError:
+                pass
         elif filters.author_ids and len(filters.author_ids) > 0:
+            # Apply author filter from array
             query = query.filter(Book.author_id.in_(filters.author_ids))
         elif filters.author_id is not None:
+            # Apply single author filter
             query = query.filter(Book.author_id == filters.author_id)
 
         if filters.rating_min is not None:
@@ -153,11 +151,11 @@ async def list_books(
             books_data.append(
                 DiscountedBook(
                     id=book.id,
-                    name=book.book_title,
+                    book_title=book.book_title,
                     author=author.author_name,
-                    price=book.book_price,
+                    book_price=book.book_price,
                     discount_price=discount.discount_price if discount else None,
-                    cover_photo=book.book_cover_photo,
+                    book_cover_photo=book.book_cover_photo,
                     discount_amount=(book.book_price - discount.discount_price)
                     if discount and discount.discount_price is not None
                     else 0,
@@ -238,11 +236,11 @@ async def get_books_on_sale(db: Session = Depends(get_db)):
         on_sale_books = [
             DiscountedBook(
                 id=item["book"].id,
-                name=item["book"].book_title,
+                book_title=item["book"].book_title,
                 author=item["author"].author_name,
-                price=item["book"].book_price,
+                book_price=item["book"].book_price,
                 discount_price=item["discount"].discount_price,
-                cover_photo=item["book"].book_cover_photo,
+                book_cover_photo=item["book"].book_cover_photo,
                 discount_amount=item["discount_amount"],
             )
             for item in sorted_books
@@ -297,13 +295,13 @@ async def get_recommended_books(db: Session = Depends(get_db)):
         recommended_books = [
             RatedBook(
                 id=book.id,
-                name=book.book_title,
+                book_title=book.book_title,
                 author=author.author_name,
-                price=book.book_price,
+                book_price=book.book_price,
                 discount_price=discount.discount_price if discount else None,
-                cover_photo=book.book_cover_photo,
-                average_rating=stats.avg_rating,
-                total_reviews=stats.review_count,
+                book_cover_photo=book.book_cover_photo,
+                avg_rating=stats.avg_rating,
+                review_count=stats.review_count,
             )
             for book, author, stats, discount in books
         ]
@@ -362,11 +360,11 @@ async def get_popular_books(db: Session = Depends(get_db)):
         popular_books = [
             PopularBook(
                 id=book.id,
-                name=book.book_title,
+                book_title=book.book_title,
                 author=author.author_name,
-                price=book.book_price,
+                book_price=book.book_price,
                 discount_price=discount.discount_price if discount else None,
-                cover_photo=book.book_cover_photo,
+                book_cover_photo=book.book_cover_photo,
                 review_count=db.query(BookStats.review_count)
                 .filter(BookStats.id == book.id)
                 .scalar(),
@@ -374,7 +372,7 @@ async def get_popular_books(db: Session = Depends(get_db)):
             for book, author, stats, discount in books
         ]
 
-        book_ids = [book.id for book, _, _ in books]
+        book_ids = [book.id for book, _, _, _ in books]
         await update_book_stats(db, book_ids)
 
         return PopularBooksResponse(items=popular_books)
@@ -434,14 +432,14 @@ async def get_book_by_id(book_id: int, db: Session = Depends(get_db)):
 
         book_detail_data = {
             "id": book.id,
-            "name": book.book_title,
+            "book_title": book.book_title,
             "author": author.author_name,
             "category": category.category_name,
-            "price": book.book_price,
-            "summary": book.book_summary,
-            "cover_photo": book.book_cover_photo,
+            "book_price": book.book_price,
+            "book_summary": book.book_summary,
+            "book_cover_photo": book.book_cover_photo,
             "discount_price": discount.discount_price if discount else None,
-            "average_rating": stats.avg_rating if stats else 0.0,
+            "avg_rating": stats.avg_rating if stats else 0.0,
             "review_count": stats.review_count if stats else 0,
         }
 

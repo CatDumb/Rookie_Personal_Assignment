@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 const HomePage = () => {
   return (
     <div>
+      {/* --- ON SALE SECTION --- */}
       <div className="flex flex-col gap-4 py-4">
         <div className="flex justify-between items-center">
           <div className="text-2xl font-bold">On sale</div>
@@ -20,6 +21,7 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* --- FEATURED SECTION --- */}
       <div className="flex flex-col gap-4 py-4">
         <Featured />
       </div>

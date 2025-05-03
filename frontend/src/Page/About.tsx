@@ -27,7 +27,7 @@ const AboutPage = () => {
                         </div>
                     </div>
 
-                    <div className="w-px bg-gray-300 mx-4 md:w-full md:h-px md:my-8"></div>
+                    <div className="w-px mx-4 md:w-full md:h-px md:my-8"></div>
 
                     <div className="column flex flex-col gap-6 text-left">
                         <div className="flex-1">

@@ -1,16 +1,14 @@
 // src/Page/BookDetails.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { BookHeader } from '../components/Header/BookHeader';
 import { Button } from '../components/ui/button';
 import { ReviewForm } from '../components/ui/reviewForm';
 import { ReviewItem } from '../components/ui/reviewItem';
-import { Star } from 'lucide-react';
 import { useAuth } from '@/components/Context/AuthContext';
 import { QuantitySelector } from '@/components/ui/quantitySelector';
 import { dispatchCartUpdateEvent } from '@/components/Context/CartContext';
 import { useBookDetails } from '@/hooks/useBookDetails';
-import { usePagination } from '@/hooks/usePagination';
 
 import {
   Pagination,
@@ -22,49 +20,83 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
-// ----- TYPES & INTERFACES -----
-interface Review {
-  id: number;
-  title: string;
-  author: string;
-  date: string;
-  rating: number;
-  content: string;
-}
+import { getReviews, ReviewFilterRequest, ReviewPostResponse, getBookStats, BookStatsResponse } from '@/api/review';
+
+// Use the ReviewPostResponse type from the API
+type Review = ReviewPostResponse;
 
 const BookDetails = () => {
   const { id } = useParams<{ id: string }>();
   const numericId = id ? parseInt(id, 10) : null;
 
   const { book, loading: bookLoading, error: bookError } = useBookDetails(numericId);
-
   const [quantity, setQuantity] = useState(1);
   const { isLoggedIn } = useAuth();
 
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [bookStats, setBookStats] = useState<BookStatsResponse | null>(null);
+  const [activeRatingFilter, setActiveRatingFilter] = useState<number | null>(null);
 
-  const {
-    currentPage,
-    totalPages,
-    paginatedData: currentReviews,
-    handlePageChange,
-    nextPage,
-    prevPage
-  } = usePagination({
-    data: reviews,
-    itemsPerPage: 3
-  });
+  const fetchBookStats = useCallback(async () => {
+    if (!numericId) return;
+
+    try {
+      const stats = await getBookStats(numericId);
+      setBookStats(stats);
+    } catch (error) {
+      console.error('Failed to fetch book stats:', error);
+    }
+  }, [numericId]);
+
+  const fetchReviews = useCallback(async () => {
+    if (!numericId) return;
+
+    setLoadingReviews(true);
+    try {
+      const filters: ReviewFilterRequest = {
+        book_id: numericId,
+        page: currentPage,
+        per_page: 5,
+        sort_order: 'newest',
+        rating: activeRatingFilter || undefined
+      };
+
+      const response = await getReviews(filters);
+      setReviews(response.items);
+      setTotalPages(response.pages);
+    } catch (error) {
+      console.error('Failed to fetch reviews:', error);
+    } finally {
+      setLoadingReviews(false);
+    }
+  }, [numericId, currentPage, activeRatingFilter]);
 
   useEffect(() => {
-    if (book) {
-        const dummyReviews = generateDummyReviews(book.review_count || 12);
-        setReviews(dummyReviews);
-    } else {
-        setReviews([]);
+    if (numericId) {
+      fetchReviews();
+      fetchBookStats();
     }
-  }, [book]);
+  }, [numericId, fetchReviews, fetchBookStats]);
 
-  /* EVENT HANDLERS */
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
   const decrementQuantity = () => {
     setQuantity(prev => (prev > 1 ? prev - 1 : 1));
   };
@@ -138,38 +170,10 @@ const BookDetails = () => {
     }
   };
 
-  /* UTILITY FUNCTIONS */
-  const generateDummyReviews = (count: number): Review[] => {
-    const dummyReviews: Review[] = [];
-    const reviewContents = [
-      "This book was amazing! I couldn't put it down.",
-      "A wonderful read that kept me engaged from start to finish.",
-      "The author's writing style is captivating and the story flows well.",
-      "I found the characters to be well-developed and relatable.",
-      "A bit slow at times, but overall a solid book.",
-      "Not what I expected, but pleasantly surprised by the ending.",
-      "The plot twists in this book were unexpected and exciting!",
-      "I enjoyed the author's perspective on the subject matter.",
-      "Would definitely recommend to friends looking for a good read.",
-      "I'll be looking for more books by this author in the future."
-    ];
-    const names = ["John D.", "Sarah M.", "Robert K.", "Emily L.", "Michael P.", "Jennifer S.", "David W.", "Amanda C.", "James T.", "Lisa B."];
-    for (let i = 1; i <= count; i++) {
-      const randomRating = Math.floor(Math.random() * 5) + 1;
-      const randomContent = reviewContents[i % reviewContents.length];
-      const randomName = names[i % names.length];
-      const randomDate = new Date();
-      randomDate.setDate(randomDate.getDate() - (i * 3));
-      dummyReviews.push({
-        id: i,
-        title: `Review ${i}`,
-        author: randomName,
-        date: randomDate.toISOString(),
-        rating: randomRating,
-        content: randomContent
-      });
-    }
-    return dummyReviews;
+  // New function to handle rating filter clicks
+  const handleRatingFilterClick = (rating: number | null) => {
+    setActiveRatingFilter(rating);
+    setCurrentPage(1); // Reset to first page when changing filters
   };
 
   /* LOADING STATES */
@@ -185,8 +189,6 @@ const BookDetails = () => {
     return <div className="text-center py-20">Book not found</div>;
   }
 
-  console.log("Book data:", book);
-
   return (
     <div>
       {/* HEADER AND CATEGORY */}
@@ -200,15 +202,17 @@ const BookDetails = () => {
             {/* BOOK COVER */}
             <div className='w-full md:w-[30%] flex flex-col'>
               <div className="max-w-[300px] mx-auto md:mx-0">
-                {book.cover_photo ? (
+                {book.book_cover_photo ? (
                   <img
-                    src={book.cover_photo}
-                    alt={book.name}
-                    className="w-full h-auto object-cover rounded"
+                    src={book.book_cover_photo}
+                    alt={book.book_title}
+                    className="w-full h-auto object-contain rounded"
                     onError={(e) => {
+                      console.log("Image load error for:", book.book_cover_photo);
                       e.currentTarget.onerror = null;
                       e.currentTarget.src = "/book.png";
                     }}
+                    loading="lazy"
                   />
                 ) : (
                   <img src="/book.png" alt="Default book cover" className="w-full h-auto rounded" />
@@ -221,8 +225,8 @@ const BookDetails = () => {
 
             {/* BOOK INFO */}
             <div className='w-full md:w-[50%] mt-4 md:mt-0'>
-              <p className='font-bold text-xl md:text-2xl mb-3'>{book.name}</p>
-              <p className='text-left'>{book.summary}</p>
+              <p className='font-bold text-xl md:text-2xl mb-3'>{book.book_title}</p>
+              <p className='text-left'>{book.book_summary}</p>
             </div>
           </div>
         </div>
@@ -232,7 +236,7 @@ const BookDetails = () => {
           {/* PRICE DISPLAY */}
           <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-200 rounded-t-lg">
             <span className={book.discount_price ? "text-md line-through" : "text-2xl text-black font-bold break-words"}>
-              ${book.price}
+              ${book.book_price}
             </span>
             {book.discount_price && (
               <span className="text-2xl text-black font-bold break-words">
@@ -266,35 +270,75 @@ const BookDetails = () => {
         {/* REVIEWS LIST */}
         <div className="w-full lg:w-[68%] border-2 border-gray-400 rounded-lg">
           <div className='flex flex-col gap-4 px-4 py-8'>
-            <div className='font-bold text-2xl'>
+            <div className='font-bold text-xl'>
               Customer Reviews
             </div>
 
             {/* RATING SUMMARY */}
-            <div className='font-bold text-2xl flex items-center gap-2'>
-              <span>{book.average_rating}</span>
-              <div className="flex">
-                {Array(5).fill(0).map((_, index) => (
-                  <Star
-                    key={index}
-                    className={`h-5 w-5 ${index < Math.round(book.average_rating) ? "fill-yellow-400 text-yellow-400" : "fill-gray-200 text-gray-200"}`}
-                  />
-                ))}
-              </div>
-              <span className="text-base font-normal ml-2">({reviews.length} reviews)</span>
+            <div className='font-bold text-4xl flex items-center gap-2'>
+              {bookStats && bookStats.items && bookStats.items.length > 0 ? (
+                  <div>{bookStats.items[0].avg_rating} Star</div>
+              ) : (
+                <span>Loading ratings...</span>
+              )}
             </div>
+
+            {/* RATING DISTRIBUTION */}
+            {bookStats && bookStats.items && bookStats.items.length > 0 && (
+              <div>
+                <div className="flex flex-row divide-x divide-gray-300">
+                  <div
+                    className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === null ? 'font-bold underline' : ''}`}
+                    onClick={() => handleRatingFilterClick(null)}
+                  >
+                    All ({bookStats.items[0].review_count})
+                  </div>
+                  <div
+                    className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 5 ? 'font-bold underline' : ''}`}
+                    onClick={() => handleRatingFilterClick(5)}
+                  >
+                    5 Star ({bookStats.items[0].star_5})
+                  </div>
+                  <div
+                    className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 4 ? 'font-bold underline' : ''}`}
+                    onClick={() => handleRatingFilterClick(4)}
+                  >
+                    4 Star ({bookStats.items[0].star_4})
+                  </div>
+                  <div
+                    className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 3 ? 'font-bold underline' : ''}`}
+                    onClick={() => handleRatingFilterClick(3)}
+                  >
+                    3 Star ({bookStats.items[0].star_3})
+                  </div>
+                  <div
+                    className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 2 ? 'font-bold underline' : ''}`}
+                    onClick={() => handleRatingFilterClick(2)}
+                  >
+                    2 Star ({bookStats.items[0].star_2})
+                  </div>
+                  <div
+                    className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 1 ? 'font-bold underline' : ''}`}
+                    onClick={() => handleRatingFilterClick(1)}
+                  >
+                    1 Star ({bookStats.items[0].star_1})
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* REVIEW ITEMS */}
             <div className="mt-4">
-              {currentReviews.length > 0 ? (
-                currentReviews.map(review => (
+              {loadingReviews ? (
+                <div className="text-center py-4">Loading reviews...</div>
+              ) : reviews.length > 0 ? (
+                reviews.map((review, index) => (
                   <ReviewItem
-                    key={review.id}
-                    title={review.title}
-                    author={review.author}
-                    date={review.date}
-                    rating={review.rating}
-                    content={review.content}
+                    key={index}
+                    title={review.review_title}
+                    content={review.review_details || ''}
+                    date={review.review_date}
+                    rating={review.rating_star}
                   />
                 ))
               ) : (
@@ -314,25 +358,25 @@ const BookDetails = () => {
                   </PaginationItem>
 
                   {[...Array(totalPages).keys()].map((_, index) => {
-                     const pageNumber = index + 1;
-                     if (pageNumber === 1 ||
-                         pageNumber === totalPages ||
-                         (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)) {
-                        return (
-                            <PaginationItem key={pageNumber}>
-                                <PaginationLink
-                                isActive={currentPage === pageNumber}
-                                onClick={() => handlePageChange(pageNumber)}
-                                >
-                                {pageNumber}
-                                </PaginationLink>
-                            </PaginationItem>
-                        );
-                     }
-                     if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
-                         return <PaginationItem key={`ellipsis-${pageNumber}`}><PaginationEllipsis /></PaginationItem>;
-                     }
-                     return null;
+                    const pageNumber = index + 1;
+                    if (pageNumber === 1 ||
+                        pageNumber === totalPages ||
+                        (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)) {
+                      return (
+                        <PaginationItem key={pageNumber}>
+                          <PaginationLink
+                            isActive={currentPage === pageNumber}
+                            onClick={() => handlePageChange(pageNumber)}
+                          >
+                            {pageNumber}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
+                      return <PaginationItem key={`ellipsis-${pageNumber}`}><PaginationEllipsis /></PaginationItem>;
+                    }
+                    return null;
                   })}
 
                   <PaginationItem>

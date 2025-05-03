@@ -16,6 +16,7 @@ import { BookCard } from "@/components/ui/card";
 import ShopPagination from "@/components/Pagination/ShopPagination";
 
 const ShopPage = () => {
+  // --- STATE DEFINITIONS ---
   const [activeFilters, setActiveFilters] = useState<FilterState>({
     categories: [],
     authors: [],
@@ -36,7 +37,7 @@ const ShopPage = () => {
   // Add a state variable for total books count
   const [totalBooks, setTotalBooks] = useState(0);
 
-  // Create a memoized fetchBooks function to avoid recreation on every render
+  // --- DATA FETCH FUNCTION ---
   const fetchBooks = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -73,6 +74,7 @@ const ShopPage = () => {
     fetchBooks();
   }, [fetchBooks]);
 
+  // --- HANDLER FUNCTIONS ---
   const handleFilterChange = (filters: FilterState) => {
     // Important: Set current page to 1 BEFORE setting the activeFilters
     // This ensures the page reset happens before the next API call
@@ -100,24 +102,34 @@ const ShopPage = () => {
     setItemsPerPage(value);
   };
 
+  // --- MAIN RENDER ---
   return (
     <div>
+      {/* --- HEADER SECTION --- */}
       <ShopHeader activeFilters={activeFilters} />
       <div className="flex flex-col md:flex-row gap-4 py-4">
+        {/* --- FILTERS SECTION --- */}
         <div className="w-full md:w-[15%] md:min-w-[15%] md:max-w-[15%] flex-shrink-0">
           <div className="w-full overflow-hidden">
             <BookFilters onFilterChange={handleFilterChange} />
           </div>
         </div>
         <div className="hidden md:block md:w-[20px] md:min-w-[20px] md:max-w-[20px] flex-shrink-0"></div>
+        {/* --- BOOKS DISPLAY SECTION --- */}
         <div className="flex-grow">
           <div className="w-full">
             <div className="w-full flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
-                  <p className="text-sm">
-                    Showing {itemsPerPage * (currentPage - 1) + 1}-{Math.min(itemsPerPage * currentPage, totalBooks)} of {totalBooks} books
-                  </p>
+                  {totalBooks > 0 ? (
+                    <p className="text-sm">
+                      Showing {itemsPerPage * (currentPage - 1) + 1}-{Math.min(itemsPerPage * currentPage, totalBooks)} of {totalBooks} books
+                    </p>
+                  ) : (
+                    <p className="text-sm">
+                      Showing 0-0 of 0 books
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   <select
@@ -159,7 +171,7 @@ const ShopPage = () => {
                   <BookCard
                     key={book.id}
                     id={book.id}
-                    title={book.title}
+                    title={book.book_title}
                     author={book.author}
                     price={book.price}
                     originalPrice={book.discountPrice ?? undefined}

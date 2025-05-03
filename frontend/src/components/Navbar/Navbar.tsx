@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "../ui/dialog";
 import { useAuth } from '../Context/AuthContext';
 import { useCart } from '../Context/CartContext';
 import { LoginPayload } from '../../api/auth';
@@ -180,8 +180,8 @@ function Navbar() {
                   </button>
                 </DialogTrigger>
                 <DialogContent>
+                  <DialogTitle>Sign In</DialogTitle>
                   <form onSubmit={handleLogin} className="space-y-4">
-                    <h2 className="text-2xl font-bold">Sign In</h2>
                     {error && <p className="text-red-500">{error}</p>}
                     <div>
                       <label className="block mb-2">Email</label>

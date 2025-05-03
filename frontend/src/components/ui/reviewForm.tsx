@@ -71,6 +71,7 @@ export function ReviewForm({ book_id }: ReviewFormProps) {
       await postReview(reviewData);
       form.reset();
       alert("Review submitted successfully!");
+      window.location.reload();
     } catch (error) {
       console.error("Failed to submit review:", error);
       alert("Failed to submit review. Please try again later.");

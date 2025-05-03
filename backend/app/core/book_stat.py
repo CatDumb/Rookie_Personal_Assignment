@@ -1,7 +1,7 @@
 from typing import List
 
 from app.db import BookStats
-from app.schemas.review import ReviewRequest
+from app.schemas.review import ReviewPostRequest
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -71,7 +71,7 @@ async def update_book_stats(db: Session, book_ids: List[int]):
         raise Exception(f"Failed to update book stats: {str(e)}")
 
 
-async def refresh_review_stats(db: Session, review: ReviewRequest) -> None:
+async def refresh_review_stats(db: Session, review: ReviewPostRequest) -> None:
     """Update the review statistics for a book. Called whenever a new review is added."""
     book_id = review.book_id
     stats = (
