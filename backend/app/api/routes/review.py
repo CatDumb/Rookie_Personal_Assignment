@@ -1,4 +1,13 @@
-"""Book review API endpoints."""
+"""
+Book review API endpoints and operations.
+
+This module provides API routes for managing book reviews including:
+- Retrieving paginated reviews for books
+- Getting review statistics
+- Adding new reviews
+
+It also handles updating book statistics when reviews are added.
+"""
 
 import math
 
@@ -35,8 +44,8 @@ async def get_book_reviews(
     Get paginated reviews for a specific book with filtering and sorting options.
 
     Args:
-        book_id (int): The ID of the book to get reviews for
         filters (ReviewFilterRequest): Filtering and pagination parameters including:
+            - book_id: ID of the book to get reviews for
             - rating: Filter reviews by rating star (1-5)
             - sort_order: Sort by review date ('newest' or 'oldest')
             - page: Page number for pagination
@@ -45,6 +54,9 @@ async def get_book_reviews(
 
     Returns:
         PaginatedReviewsResponse: Paginated list of reviews with metadata
+
+    Raises:
+        HTTPException: If book is not found (404) or other errors (500)
     """
     try:
         # Check if book exists
@@ -122,9 +134,11 @@ async def get_book_stats(
     db: Session = Depends(get_db),
 ):
     """
-    Get review statistics for a specific book including:
+    Get comprehensive review statistics for a specific book.
+
+    Retrieves the following statistics:
     - Total review count
-    - Average rating
+    - Average rating (rounded to 2 decimal places)
     - Count of reviews for each star rating (1-5)
 
     Args:
@@ -133,6 +147,9 @@ async def get_book_stats(
 
     Returns:
         BookStatsResponse: Book review statistics
+
+    Raises:
+        HTTPException: If book or statistics are not found (404) or other errors (500)
     """
     try:
         # Check if book exists
@@ -201,25 +218,31 @@ async def get_book_stats(
 
 
 @router.post(
-    "/book",  # book_id in path is now redundant if it's in the body
+    "/book",
     status_code=status.HTTP_201_CREATED,
-    response_model=ReviewPostResponse,  # Use imported schema
+    response_model=ReviewPostResponse,
 )
-# Pass book_id via path parameter for consistency or remove if always in body
 async def add_book_review(
     review: ReviewPostRequest,
     db: Session = Depends(get_db),
 ):
     """
-    Add a review for a specific book.
-    """
-    # Validate book_id consistency
-    if review.book_id != review.book_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Book ID in path does not match Book ID in request body.",
-        )
+    Add a new review for a specific book.
 
+    This endpoint creates a new review in the database and updates
+    the book's statistics (average rating, review count).
+
+    Args:
+        review (ReviewPostRequest): Review data including book ID, title,
+                                   details, and rating
+        db (Session): Database session dependency
+
+    Returns:
+        ReviewPostResponse: Created review with its details
+
+    Raises:
+        HTTPException: If book doesn't exist (404) or other errors (500)
+    """
     try:
         # Check if the book exists using the Book model
         book = db.query(Book).filter(Book.id == review.book_id).first()
@@ -240,7 +263,7 @@ async def add_book_review(
         db.commit()
         db.refresh(new_review)
 
-        # Refresh stats using the ReviewRequest data
+        # Refresh book statistics using the review data
         await refresh_review_stats(db, review)
 
         # Return the ORM object, Pydantic handles conversion
@@ -248,8 +271,3 @@ async def add_book_review(
 
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred: {str(e)}",
-        )

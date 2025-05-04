@@ -1,4 +1,9 @@
-"""Order-related API endpoints and operations."""
+"""
+Order-related API endpoints and operations.
+
+This module provides API routes for creating and managing customer orders.
+It handles order creation, validation, and storage in the database.
+"""
 
 from datetime import datetime
 
@@ -24,7 +29,26 @@ async def create_order(
     order: OrderRequest,
     db: Session = Depends(get_db),
 ):
-    """Create a new order."""
+    """
+    Create a new customer order with order items.
+
+    This endpoint processes a customer order by:
+    1. Validating the order has items
+    2. Calculating the total order amount
+    3. Creating the order record
+    4. Creating individual order item records
+    5. Committing the transaction
+
+    Args:
+        order (OrderRequest): Order data including user ID and order items
+        db (Session): Database session dependency
+
+    Returns:
+        OrderResponse: Created order with its ID and details
+
+    Raises:
+        HTTPException: If order has no items (400) or other errors (500)
+    """
     try:
         # Validate order details
         if not order.items:
@@ -33,12 +57,12 @@ async def create_order(
                 detail="No items in the order",
             )
 
-        # Calculate total amount
+        # Calculate total amount from all items
         total_amount = sum(
             float(item.quantity) * float(item.price) for item in order.items
         )
 
-        # Create order
+        # Create main order record
         new_order = Order(
             user_id=order.user_id,
             order_date=datetime.now(),
@@ -47,9 +71,9 @@ async def create_order(
 
         # Save order to database
         db.add(new_order)
-        db.flush()
+        db.flush()  # Get order ID without committing transaction
 
-        # Create order items
+        # Create individual order item records
         order_items_db = []
         for item in order.items:
             order_item = OrderItem(

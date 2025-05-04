@@ -1,3 +1,11 @@
+"""
+Book statistics calculation and management module.
+
+This module provides functions to update and manage book statistics,
+including review counts, ratings, and pricing information. These
+statistics are used for book listings, sorting, and filtering.
+"""
+
 from typing import List
 
 from app.db import BookStats
@@ -8,11 +16,20 @@ from sqlalchemy.orm import Session
 
 async def update_book_stats(db: Session, book_ids: List[int]):
     """
-    Update BookStats table for specific books with current statistics
-    - review_count: number of reviews
-    - total_star: sum of all ratings
-    - avg_rating: total_star / review_count
-    - lowest_price: considering discounts and regular price
+    Update statistics for specified books in the BookStats table.
+
+    Calculates and updates the following statistics for each book:
+    - review_count: Total number of reviews
+    - total_star: Sum of all ratings
+    - avg_rating: Average rating (total_star / review_count)
+    - lowest_price: Current lowest price (considering discounts)
+
+    Args:
+        db: Database session
+        book_ids: List of book IDs to update statistics for
+
+    Raises:
+        Exception: If there's an error updating book statistics
     """
     try:
         for book_id in book_ids:
@@ -72,7 +89,19 @@ async def update_book_stats(db: Session, book_ids: List[int]):
 
 
 async def refresh_review_stats(db: Session, review: ReviewPostRequest) -> None:
-    """Update the review statistics for a book. Called whenever a new review is added."""
+    """
+    Update book review statistics when a new review is added.
+
+    This function is more optimized than update_book_stats as it
+    incrementally updates the statistics without re-querying all reviews.
+
+    Args:
+        db: Database session
+        review: The new review being added
+
+    Note:
+        This function commits the database transaction.
+    """
     book_id = review.book_id
     stats = (
         db.query(BookStats.review_count, BookStats.total_star)

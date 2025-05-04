@@ -1,4 +1,14 @@
-"""User authentication and management endpoints."""
+"""
+User authentication and management API endpoints.
+
+This module provides API routes for user operations including:
+- User registration
+- Login and authentication
+- Token management (refresh, validation)
+- User profile management
+
+It uses JWT tokens for authentication and handles password hashing securely.
+"""
 
 import logging
 
@@ -18,7 +28,7 @@ from app.schemas.user import LoginUserRequest, RegisterUserRequest, UserInfoRetu
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-# Set up logger
+# Set up logger for error tracking
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/user", tags=["user"])
@@ -27,7 +37,10 @@ router = APIRouter(prefix="/user", tags=["user"])
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(request: RegisterUserRequest, db: Session = Depends(get_db)):
     """
-    Register a new user account.
+    Register a new user account with email and password.
+
+    This endpoint validates the email is unique, hashes the password securely,
+    creates a new user in the database, and returns an authentication token.
 
     Args:
         request (RegisterUserRequest): User registration data including email, password, names
@@ -95,7 +108,10 @@ async def register_user(request: RegisterUserRequest, db: Session = Depends(get_
 @router.post("/login", status_code=status.HTTP_200_OK)
 async def login_user(request: LoginUserRequest, db: Session = Depends(get_db)):
     """
-    Authenticate a user and provide access tokens.
+    Authenticate a user and provide access and refresh tokens.
+
+    This endpoint verifies the user's credentials, and if valid,
+    returns access and refresh tokens along with basic user information.
 
     Args:
         request (LoginUserRequest): User login credentials (email, password)
@@ -163,12 +179,15 @@ async def refresh_access_token(
     """
     Generate a new access token using a valid refresh token.
 
+    This endpoint validates the refresh token, extracts the user identity,
+    and issues a new access token without requiring password authentication.
+
     Args:
         request (RefreshTokenRequest): Refresh token data
         db (Session): Database session dependency
 
     Returns:
-        dict: New access token and token type
+        Token: New access token and token type
 
     Raises:
         HTTPException: If invalid refresh token (401), user not found (401),
@@ -226,7 +245,8 @@ def logout_user():
     """
     Endpoint for user logout.
 
-    Note: Currently a placeholder, actual implementation would involve token revocation.
+    Note: Currently a placeholder. A full implementation would involve
+    token revocation on the server side and client-side token removal.
 
     Returns:
         dict: Success message
@@ -248,45 +268,18 @@ def logout_user():
 @router.get("/profile", status_code=status.HTTP_200_OK)
 async def get_user_profile(
     current_user: UserInfoReturn = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
-    Get the current user's profile information including their ID.
+    Retrieve the authenticated user's profile information.
+
+    This endpoint requires authentication and returns the
+    user's profile information based on their access token.
 
     Args:
-        current_user (UserInfoReturn): Current authenticated user
-        db (Session): Database session dependency
+        current_user (UserInfoReturn): Current authenticated user extracted from token
 
     Returns:
-        dict: User profile information including ID
-
-    Raises:
-        HTTPException: If user is not found (404) or other errors (500)
+        UserInfoReturn: User profile information
     """
-    try:
-        # Get the full user data from the database
-        user = db.query(UserModel).filter(UserModel.email == current_user.email).first()
-
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
-            )
-
-        # Return the user data including ID
-        return {
-            "id": user.id,
-            "email": user.email,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "admin": user.admin,
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting user profile: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve user profile. Please try again later.",
-        )
+    # The current_user is already extracted from the token by the dependency
+    return current_user

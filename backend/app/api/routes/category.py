@@ -1,4 +1,9 @@
-"""Category-related API endpoints."""
+"""
+Category-related API endpoints and operations.
+
+This module provides API routes for retrieving book categories,
+which are used for filtering and organizing books in the bookstore.
+"""
 
 from app.core.db_config import get_db
 from app.db.category import Category as CategoryModel
@@ -19,7 +24,10 @@ router = APIRouter(
 )
 async def get_categories(db: Session = Depends(get_db)):
     """
-    Return all book categories with their ID, name, and description.
+    Retrieve all book categories sorted alphabetically by name.
+
+    Categories are used to classify books and allow users to browse
+    the bookstore by subject or genre.
 
     Args:
         db (Session): Database session dependency

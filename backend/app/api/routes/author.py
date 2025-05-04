@@ -1,4 +1,9 @@
-"""Author-related API endpoints."""
+"""
+Author-related API endpoints and operations.
+
+This module provides API routes for retrieving author information,
+which is used in book listings and author-specific views.
+"""
 
 from app.core.db_config import get_db
 from app.db.author import Author as AuthorModel
@@ -19,7 +24,7 @@ router = APIRouter(
 )
 async def get_authors(db: Session = Depends(get_db)):
     """
-    Return all authors with their ID, name, and bio.
+    Retrieve all authors sorted alphabetically by name.
 
     Args:
         db (Session): Database session dependency

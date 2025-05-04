@@ -1,4 +1,9 @@
-"""API entrypoint for the backend application."""
+"""
+FastAPI application entry point that configures and starts the backend service.
+
+This module sets up the FastAPI app with CORS middleware, static file mounts,
+and includes all API routes. It serves the frontend application and API endpoints.
+"""
 
 import os
 
@@ -12,7 +17,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    # Update to include all origins you need
+    # Allow specific origins for CORS requests
     allow_origins=[
         "http://127.0.0.1:5173",
         "http://localhost:5173",
@@ -27,12 +32,12 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-# Path to frontend directory
+# Locate and configure the path to the frontend directory
 frontend_path = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "../../../frontend"),
 )
 
-# Mount static directories
+# Mount static directories from the frontend to serve assets
 app.mount(
     "/public",
     StaticFiles(directory=os.path.join(frontend_path, "public")),
@@ -42,11 +47,16 @@ app.mount(
 app.mount("/src", StaticFiles(directory=os.path.join(frontend_path, "src")), name="src")
 
 
-# Serve index.html for the root route
 @app.get("/")
 async def serve_index():
+    """
+    Serve the frontend index.html file for the root route.
+
+    Returns:
+        FileResponse: The index.html file from the frontend directory
+    """
     return FileResponse(os.path.join(frontend_path, "index.html"))
 
 
-# Include your API routes
+# Include all API routes from the router
 app.include_router(api_router)

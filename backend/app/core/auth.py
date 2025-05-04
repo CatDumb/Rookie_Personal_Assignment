@@ -1,3 +1,11 @@
+"""
+Authentication and authorization module for the application.
+
+This module provides functions for password hashing, user retrieval,
+authentication, token generation, and validation. It implements JWT-based
+authentication for securing API endpoints.
+"""
+
 import os
 from datetime import datetime, timedelta
 
@@ -34,20 +42,46 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Compare a plain password with its hashed version."""
+    """
+    Compare a plain password with its hashed version.
+
+    Args:
+        plain_password: The plain text password to verify
+        hashed_password: The bcrypt hashed password to compare against
+
+    Returns:
+        bool: True if the password matches, False otherwise
+    """
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    """Generate a hashed password for storage."""
+    """
+    Generate a bcrypt hash for a plain text password.
+
+    Args:
+        password: The plain text password to hash
+
+    Returns:
+        str: The bcrypt hashed password
+    """
     return pwd_context.hash(password)
 
 
 def get_user(db: Session, email: str) -> UserInDB | None:
     """
-    Retrieve a user from the database.
-    Since the database uses the column 'password' for the hashed password,
-    we assign it to the 'hashed_password' field in our Pydantic model.
+    Retrieve a user from the database with sensitive information.
+
+    Args:
+        db: Database session
+        email: User's email address to look up
+
+    Returns:
+        UserInDB: User object with hashed password if found
+        None: If no user is found with the given email
+
+    Notes:
+        Maps the database 'password' column to the 'hashed_password' field in the Pydantic model.
     """
     user = db.query(UserModel).filter(UserModel.email == email).first()
     if user:
@@ -63,8 +97,15 @@ def get_user(db: Session, email: str) -> UserInDB | None:
 
 def get_public_user(db: Session, email: str) -> UserInfoReturn | None:
     """
-    Retrieve a user from the database returning only public information.
-    Uses get_user internally and strips out sensitive information.
+    Retrieve a user with only public information.
+
+    Args:
+        db: Database session
+        email: User's email address to look up
+
+    Returns:
+        UserInfoReturn: User object without sensitive data if found
+        None: If no user is found with the given email
     """
     user_in_db = get_user(db, email)
     if user_in_db:
@@ -79,9 +120,16 @@ def get_public_user(db: Session, email: str) -> UserInfoReturn | None:
 
 def authenticate_user(db: Session, email: str, password: str):
     """
-    Verify that a user exists and that the provided password is correct.
-    Returns the complete user record (including hashed password) upon successful
-    authentication, otherwise returns False.
+    Authenticate a user with email and password.
+
+    Args:
+        db: Database session
+        email: User's email address
+        password: User's plain text password
+
+    Returns:
+        UserInDB: Complete user record if authentication succeeds
+        False: If authentication fails (user not found or password incorrect)
     """
     user = get_user(db, email)
     if not user:
@@ -96,8 +144,17 @@ def create_access_token(
     expires_delta: timedelta | None = None,
 ) -> str:
     """
-    Create a JWT access token including the user's public information.
-    Explicitly adds a 'sub' (subject) claim to the token payload.
+    Create a JWT access token with user's public information.
+
+    Args:
+        data: User data to encode in the token
+        expires_delta: Optional custom expiration time
+
+    Returns:
+        str: Encoded JWT access token
+
+    Notes:
+        Explicitly adds a 'sub' (subject) claim to identify the user.
     """
     # Convert the public user data to a dictionary if it's not already one
     if hasattr(data, "model_dump"):
@@ -123,8 +180,14 @@ def create_refresh_token(
     expires_delta: timedelta | None = None,
 ) -> str:
     """
-    Create a JWT refresh token with a longer expiry time.
-    This token will be used to get new access tokens.
+    Create a JWT refresh token with longer expiration time.
+
+    Args:
+        data: User data (only email is used)
+        expires_delta: Optional custom expiration time
+
+    Returns:
+        str: Encoded JWT refresh token
     """
     # If it's a Pydantic model, get the email from it, otherwise from dict
     if hasattr(data, "email"):
@@ -144,8 +207,16 @@ def create_refresh_token(
 
 def verify_token(token: str) -> dict:
     """
-    Verify a token and return its payload if valid.
-    Raises an exception if token is invalid.
+    Verify and decode a JWT token.
+
+    Args:
+        token: JWT token to verify
+
+    Returns:
+        dict: Token payload if valid
+
+    Raises:
+        HTTPException: If token is invalid (401 Unauthorized)
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -163,8 +234,17 @@ async def get_current_user(
     db: Session = Depends(get_db),
 ):
     """
-    Dependency for obtaining the current user from the JWT token.
-    Decodes the token and retrieves user info from the database (without sensitive fields).
+    FastAPI dependency that extracts the current user from a JWT token.
+
+    Args:
+        token: JWT access token (extracted from Authorization header)
+        db: Database session
+
+    Returns:
+        UserInfoReturn: Current authenticated user without sensitive data
+
+    Raises:
+        HTTPException: If token is invalid or user not found (401 Unauthorized)
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
