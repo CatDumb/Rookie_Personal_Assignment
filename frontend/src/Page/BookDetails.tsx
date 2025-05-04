@@ -1,5 +1,5 @@
 // src/Page/BookDetails.tsx
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { BookHeader } from '../components/Header/BookHeader';
 import { Button } from '../components/ui/button';
@@ -42,9 +42,17 @@ const BookDetails = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [perPage, setPerPage] = useState(15);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [bookStats, setBookStats] = useState<BookStatsResponse>({ items: [] });
   const [activeRatingFilter, setActiveRatingFilter] = useState<number | null>(null);
+
+  // Dropdown state
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [perPageDropdownOpen, setPerPageDropdownOpen] = useState(false);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
+  const perPageDropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchBookStats = useCallback(async () => {
     if (!numericId) return;
@@ -67,8 +75,8 @@ const BookDetails = () => {
       const filters: ReviewFilterRequest = {
         book_id: numericId,
         page: currentPage,
-        per_page: 5,
-        sort_order: 'newest',
+        per_page: perPage,
+        sort_order: sortOrder,
         rating: activeRatingFilter || undefined
       };
 
@@ -82,7 +90,7 @@ const BookDetails = () => {
     } finally {
       setLoadingReviews(false);
     }
-  }, [numericId, currentPage, activeRatingFilter]);
+  }, [numericId, currentPage, perPage, sortOrder, activeRatingFilter]);
 
   useEffect(() => {
     if (numericId) {
@@ -90,6 +98,23 @@ const BookDetails = () => {
       fetchBookStats();
     }
   }, [numericId, fetchReviews, fetchBookStats]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setSortDropdownOpen(false);
+      }
+      if (perPageDropdownRef.current && !perPageDropdownRef.current.contains(event.target as Node)) {
+        setPerPageDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -105,6 +130,18 @@ const BookDetails = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
+  };
+
+  const handlePerPageChange = (value: number) => {
+    setPerPage(value);
+    setCurrentPage(1); // Reset to first page when changing items per page
+    setPerPageDropdownOpen(false);
+  };
+
+  const handleSortOrderChange = (value: 'newest' | 'oldest') => {
+    setSortOrder(value);
+    setCurrentPage(1); // Reset to first page when changing sort order
+    setSortDropdownOpen(false);
   };
 
   const handleAddToCart = () => {
@@ -151,6 +188,19 @@ const BookDetails = () => {
     setCurrentPage(1); // Reset to first page when changing filters
   };
 
+  const getFilteredReviewCount = (): number => {
+    if (!activeRatingFilter) return totalReviews;
+
+    switch (activeRatingFilter) {
+      case 5: return currentBookStats.star_5;
+      case 4: return currentBookStats.star_4;
+      case 3: return currentBookStats.star_3;
+      case 2: return currentBookStats.star_2;
+      case 1: return currentBookStats.star_1;
+      default: return totalReviews;
+    }
+  };
+
   /* LOADING STATES */
   if (bookLoading) {
     return <div className="text-center py-20">Loading book details...</div>;
@@ -174,6 +224,9 @@ const BookDetails = () => {
     star_2: 0,
     star_1: 0
   };
+
+  // Total reviews count
+  const totalReviews = currentBookStats.review_count || 0;
 
   return (
     <div>
@@ -307,6 +360,117 @@ const BookDetails = () => {
                   onClick={() => handleRatingFilterClick(1)}
                 >
                   1 Star ({currentBookStats.star_1})
+                </div>
+              </div>
+            </div>
+
+            <div className='flex justify-between gap-2'>
+              {/* Pagination index */}
+              <div className="text-center text-gray-500">
+                {totalReviews > 0 ? (
+                  <>
+                    Showing {Math.min((currentPage - 1) * perPage + 1, activeRatingFilter ? getFilteredReviewCount() : totalReviews)} to {Math.min(currentPage * perPage, activeRatingFilter ? getFilteredReviewCount() : totalReviews)} of {activeRatingFilter ? getFilteredReviewCount() : totalReviews} reviews
+                  </>
+                ) : (
+                  <>No reviews to display</>
+                )}
+              </div>
+
+              <div className='flex justify-between gap-2'>
+                {/* Sorting options */}
+                <div className="text-right text-gray-500 relative" ref={sortDropdownRef}>
+                  <button
+                    className="flex items-center justify-center px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-100"
+                    onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                  >
+                    <span className="mr-1">
+                      {sortOrder === 'newest' ? 'Newest to oldest' : 'Oldest to newest'}
+                    </span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={`transition-transform duration-200 ${sortDropdownOpen ? 'rotate-180' : ''}`}
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+
+                  {sortDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
+                      <button
+                        onClick={() => handleSortOrderChange('newest')}
+                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Newest to oldest
+                      </button>
+                      <button
+                        onClick={() => handleSortOrderChange('oldest')}
+                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Oldest to newest
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Pagination per page */}
+                <div className="text-right text-gray-500 relative" ref={perPageDropdownRef}>
+                  <button
+                    className="flex items-center justify-center px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-100"
+                    onClick={() => setPerPageDropdownOpen(!perPageDropdownOpen)}
+                  >
+                    <span className="mr-1">Show {perPage}</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={`transition-transform duration-200 ${perPageDropdownOpen ? 'rotate-180' : ''}`}
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+
+                  {perPageDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
+                      <button
+                        onClick={() => handlePerPageChange(5)}
+                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Show 5
+                      </button>
+                      <button
+                        onClick={() => handlePerPageChange(15)}
+                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Show 15
+                      </button>
+                      <button
+                        onClick={() => handlePerPageChange(20)}
+                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Show 20
+                      </button>
+                      <button
+                        onClick={() => handlePerPageChange(25)}
+                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Show 25
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
