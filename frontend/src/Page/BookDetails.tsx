@@ -22,23 +22,27 @@ import {
 
 import { getReviews, ReviewFilterRequest, ReviewPostResponse, getBookStats, BookStatsResponse } from '@/api/review';
 
-// Use the ReviewPostResponse type from the API
+/* Type definitions */
+// Review type from API
 type Review = ReviewPostResponse;
 
-// Type for cart items
+// Cart item structure for localStorage
 interface CartItem {
   id: number;
   quantity: number;
 }
 
 const BookDetails = () => {
+  /* URL parameters */
   const { id } = useParams<{ id: string }>();
   const numericId = id ? parseInt(id, 10) : null;
 
+  /* Book data state */
   const { book, loading: bookLoading, error: bookError } = useBookDetails(numericId);
   const [quantity, setQuantity] = useState(1);
   const { isLoggedIn } = useAuth();
 
+  /* Reviews state */
   const [reviews, setReviews] = useState<Review[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -48,12 +52,13 @@ const BookDetails = () => {
   const [bookStats, setBookStats] = useState<BookStatsResponse>({ items: [] });
   const [activeRatingFilter, setActiveRatingFilter] = useState<number | null>(null);
 
-  // Dropdown state
+  /* UI dropdown state */
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const [perPageDropdownOpen, setPerPageDropdownOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const perPageDropdownRef = useRef<HTMLDivElement>(null);
 
+  /* Fetch book statistics (rating counts, review counts) */
   const fetchBookStats = useCallback(async () => {
     if (!numericId) return;
 
@@ -67,6 +72,7 @@ const BookDetails = () => {
     }
   }, [numericId]);
 
+  /* Fetch book reviews with filtering options */
   const fetchReviews = useCallback(async () => {
     if (!numericId) return;
 
@@ -92,6 +98,7 @@ const BookDetails = () => {
     }
   }, [numericId, currentPage, perPage, sortOrder, activeRatingFilter]);
 
+  /* Load reviews and stats when dependencies change */
   useEffect(() => {
     if (numericId) {
       fetchReviews();
@@ -99,7 +106,7 @@ const BookDetails = () => {
     }
   }, [numericId, fetchReviews, fetchBookStats]);
 
-  // Close dropdowns when clicking outside
+  /* Handle dropdown menu click outside behavior */
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
@@ -116,6 +123,7 @@ const BookDetails = () => {
     };
   }, []);
 
+  /* Pagination handlers */
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
@@ -132,18 +140,21 @@ const BookDetails = () => {
     }
   };
 
+  /* Per-page display settings handler */
   const handlePerPageChange = (value: number) => {
     setPerPage(value);
     setCurrentPage(1); // Reset to first page when changing items per page
     setPerPageDropdownOpen(false);
   };
 
+  /* Sort order handler */
   const handleSortOrderChange = (value: 'newest' | 'oldest') => {
     setSortOrder(value);
     setCurrentPage(1); // Reset to first page when changing sort order
     setSortDropdownOpen(false);
   };
 
+  /* Add to cart functionality */
   const handleAddToCart = () => {
     if (!book) {
       return;
@@ -182,12 +193,13 @@ const BookDetails = () => {
     alert(`Added ${book.book_title} (Quantity: ${quantity}) to your cart.`);
   };
 
-  // New function to handle rating filter clicks
+  /* Rating filter handler */
   const handleRatingFilterClick = (rating: number | null) => {
     setActiveRatingFilter(rating);
     setCurrentPage(1); // Reset to first page when changing filters
   };
 
+  /* Helper to get review count based on active filter */
   const getFilteredReviewCount = (): number => {
     if (!activeRatingFilter) return totalReviews;
 
@@ -201,7 +213,7 @@ const BookDetails = () => {
     }
   };
 
-  /* LOADING STATES */
+  /* Loading and error states */
   if (bookLoading) {
     return <div className="text-center py-20">Loading book details...</div>;
   }
@@ -230,15 +242,15 @@ const BookDetails = () => {
 
   return (
     <div>
-      {/* HEADER AND CATEGORY */}
+      {/* Page Header with Category */}
       <BookHeader text={book.category} />
 
-      {/* MAIN CONTENT AREA */}
+      {/* Main Content Container */}
       <div className="flex flex-col lg:flex-row gap-4 lg:justify-between">
-        {/* BOOK DETAILS SECTION */}
+        {/* Book Information Panel */}
         <div className="w-full lg:w-[68%] border-2 border-gray-400 rounded-lg flex flex-col relative p-4">
           <div className='flex flex-col md:flex-row gap-6'>
-            {/* BOOK COVER */}
+            {/* Book Cover Image */}
             <div className='w-full md:w-[30%] flex flex-col'>
               <div className="max-w-[300px] mx-auto md:mx-0">
                 {book.book_cover_photo ? (
@@ -262,7 +274,7 @@ const BookDetails = () => {
               </div>
             </div>
 
-            {/* BOOK INFO */}
+            {/* Book Details */}
             <div className='w-full md:w-[50%] mt-4 md:mt-0'>
               <p className='font-bold text-xl md:text-2xl mb-3'>{book.book_title}</p>
               <p className='text-left'>{book.book_summary}</p>
@@ -270,7 +282,7 @@ const BookDetails = () => {
           </div>
         </div>
 
-        {/* PURCHASE BOX */}
+        {/* Purchase Box */}
         <div className="w-full lg:w-[30%] h-fit border-2 border-gray-400 rounded-lg p-4">
           <div className="font-bold text-3xl mb-6 text-center">
             {book.discount_price !== null ? (
@@ -309,20 +321,21 @@ const BookDetails = () => {
         </div>
       </div>
 
+      {/* Reviews Section */}
       <div className="flex flex-col lg:flex-row gap-4 lg:justify-between pt-4">
-        {/* REVIEWS LIST */}
+        {/* Reviews List Panel */}
         <div className="w-full lg:w-[68%] border-2 border-gray-400 rounded-lg">
           <div className='flex flex-col gap-4 px-4 py-8'>
             <div className='font-bold text-xl'>
               Customer Reviews
             </div>
 
-            {/* RATING SUMMARY */}
+            {/* Average Rating Display */}
             <div className='font-bold text-4xl flex items-center gap-2'>
               <div>{currentBookStats.avg_rating.toFixed(1)} Star</div>
             </div>
 
-            {/* RATING DISTRIBUTION */}
+            {/* Rating Filter Options */}
             <div>
               <div className="flex flex-row divide-x divide-gray-300">
                 <div
@@ -364,8 +377,9 @@ const BookDetails = () => {
               </div>
             </div>
 
+            {/* Review Controls and Info */}
             <div className='flex justify-between gap-2'>
-              {/* Pagination index */}
+              {/* Pagination Summary */}
               <div className="text-center text-gray-500">
                 {totalReviews > 0 ? (
                   <>
@@ -377,7 +391,7 @@ const BookDetails = () => {
               </div>
 
               <div className='flex justify-between gap-2'>
-                {/* Sorting options */}
+                {/* Sort Order Dropdown */}
                 <div className="text-right text-gray-500 relative" ref={sortDropdownRef}>
                   <button
                     className="flex items-center justify-center px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-100"
@@ -420,7 +434,7 @@ const BookDetails = () => {
                   )}
                 </div>
 
-                {/* Pagination per page */}
+                {/* Results Per Page Dropdown */}
                 <div className="text-right text-gray-500 relative" ref={perPageDropdownRef}>
                   <button
                     className="flex items-center justify-center px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-100"
@@ -475,7 +489,7 @@ const BookDetails = () => {
               </div>
             </div>
 
-            {/* REVIEW ITEMS */}
+            {/* Reviews List */}
             <div className="mt-4">
               {loadingReviews ? (
                 <div className="text-center py-4">Loading reviews...</div>
@@ -494,7 +508,7 @@ const BookDetails = () => {
               )}
             </div>
 
-            {/* PAGINATION CONTROLS */}
+            {/* Pagination Navigation */}
             {totalPages > 1 && (
               <Pagination className="mt-6">
                 <PaginationContent>
@@ -539,7 +553,7 @@ const BookDetails = () => {
           </div>
         </div>
 
-        {/* REVIEW FORM */}
+        {/* Review Submission Form */}
         <div className='w-full lg:w-[30%]'>
           <ReviewForm book_id={numericId ?? 0} />
         </div>

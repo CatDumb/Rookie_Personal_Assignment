@@ -1,3 +1,4 @@
+/* Shop Pagination Component - Paginated navigation for book listings */
 import {
   Pagination,
   PaginationContent,
@@ -8,23 +9,30 @@ import {
   PaginationEllipsis,
 } from "@/components/ui/pagination";
 
+/* Props Interface */
 interface ShopPaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
 }
 
+/**
+ * Advanced pagination component for the shop page
+ * Includes first/last page, adjacent pages to current page, and ellipsis for skipped ranges
+ */
 function ShopPagination({
   currentPage,
   totalPages,
   onPageChange
 }: ShopPaginationProps) {
+  /* Don't render pagination if only one page */
   if (totalPages <= 1) return null;
 
   return (
     <div className="flex justify-center mt-4">
       <Pagination>
         <PaginationContent>
+          {/* Previous Page Button */}
           <PaginationItem>
             <PaginationPrevious
               onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
@@ -42,7 +50,7 @@ function ShopPagination({
             </PaginationLink>
           </PaginationItem>
 
-          {/* Ellipsis if needed */}
+          {/* Left Ellipsis - Shown when current page is far from start */}
           {currentPage > 3 && (
             <PaginationItem>
               <PaginationEllipsis />
@@ -73,7 +81,7 @@ function ShopPagination({
             return null;
           })}
 
-          {/* Ellipsis if needed */}
+          {/* Right Ellipsis - Shown when current page is far from end */}
           {currentPage < totalPages - 2 && (
             <PaginationItem>
               <PaginationEllipsis />
@@ -92,6 +100,7 @@ function ShopPagination({
             </PaginationItem>
           )}
 
+          {/* Next Page Button */}
           <PaginationItem>
             <PaginationNext
               onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}

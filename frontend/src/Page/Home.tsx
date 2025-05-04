@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 const HomePage = () => {
   return (
     <div>
-      {/* --- ON SALE SECTION --- */}
+      {/* On Sale Section - Displays products currently on sale with a carousel view */}
       <div className="flex flex-col gap-4 py-4">
         <div className="flex justify-between items-center">
           <div className="text-2xl font-bold">On sale</div>
@@ -21,7 +21,7 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* --- FEATURED SECTION --- */}
+      {/* Featured Products Section - Showcases specially selected products */}
       <div className="flex flex-col gap-4 py-4">
         <Featured />
       </div>

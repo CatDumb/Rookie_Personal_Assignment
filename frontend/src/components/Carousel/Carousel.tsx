@@ -1,3 +1,4 @@
+/* Book Carousel Component - Displays books on sale in a scrollable carousel */
 import { useState, useEffect } from "react";
 import { BookCard } from "../ui/card";
 import {
@@ -10,10 +11,12 @@ import {
 import { getOnSale, OnSaleItem } from "../../api/book";
 
 const CarouselBar = () => {
+    /* State Management */
     const [saleBooks, setSaleBooks] = useState<OnSaleItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    /* Data Fetching - Load books with sales/discounts */
     useEffect(() => {
         setLoading(true);
         setError("");
@@ -30,7 +33,7 @@ const CarouselBar = () => {
             });
     }, []);
 
-    // Show loading state
+    /* Loading State Display */
     if (loading) {
         return (
             <div className="text-center py-8">
@@ -39,7 +42,7 @@ const CarouselBar = () => {
         );
     }
 
-    // Show error state
+    /* Error State Display */
     if (error) {
         return (
             <div className="text-center py-8 text-red-500">
@@ -48,9 +51,10 @@ const CarouselBar = () => {
         );
     }
 
-    // Filter out empty items and ensure minimum 1 item
+    /* Filter and Validate Items */
     const validBooks = saleBooks.filter(book => book?.book_title);
 
+    /* Empty Results Display */
     if (validBooks.length === 0) {
         return (
             <div className="text-center py-8 text-gray-500">
@@ -59,6 +63,7 @@ const CarouselBar = () => {
         );
     }
 
+    /* Carousel Component Rendering */
     return (
         <div className="flex flex-col items-center justify-center w-full">
             <div className="border-2 border-gray-400 rounded-lg py-5 px-10 w-full">
@@ -71,6 +76,7 @@ const CarouselBar = () => {
                         }}
                         className="w-full"
                     >
+                        {/* Carousel Items - Book Cards */}
                         <CarouselContent className="gap-4 px-4">
                             {validBooks.map((book) => (
                                 <CarouselItem
@@ -90,6 +96,7 @@ const CarouselBar = () => {
                                 </CarouselItem>
                             ))}
                         </CarouselContent>
+                        {/* Navigation Controls - Only shown when multiple items exist */}
                         {validBooks.length > 1 && (
                             <>
                                 <CarouselPrevious className="-left-8 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />

@@ -3,15 +3,22 @@ import { AboutHeader } from '../components/Header/AboutHeader';
 const AboutPage = () => {
     return (
         <div>
+            {/* About Header Component - Navigation and hero image for the About page */}
             <AboutHeader />
+
+            {/* Main Content Section - Contains company information and story */}
             <section className="max-w-4xl mx-auto">
+                {/* Page Title */}
                 <div className="text-5xl text-center font-bold my-4">Welcome to Bookworm</div>
 
+                {/* Company Introduction */}
                 <p className="leading-[1.6] mb-4 text-left">
                     "Bookworm is an independent New York bookstore and language school with locations in Manhattan and Brooklyn. We specialize in travel books and language classes."
                 </p>
 
+                {/* Two-Column Content Layout */}
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-8">
+                    {/* Left Column - Our Story */}
                     <div className="column flex flex-col gap-6 text-left">
                         <div className="flex-1">
                             <h3 className="text-[1.5rem] font-bold mb-4">Our Story</h3>
@@ -27,8 +34,10 @@ const AboutPage = () => {
                         </div>
                     </div>
 
+                    {/* Divider */}
                     <div className="w-px mx-4 md:w-full md:h-px md:my-8"></div>
 
+                    {/* Right Column - Our Vision */}
                     <div className="column flex flex-col gap-6 text-left">
                         <div className="flex-1">
                             <h3 className="text-[1.5rem] font-bold mb-4">Our Vision</h3>

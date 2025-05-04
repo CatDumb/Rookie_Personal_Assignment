@@ -1,3 +1,9 @@
+/* About Header Component - Displays the about page title */
+
+/**
+ * About page header with static title
+ * Simple header for the About Us page
+ */
 export const AboutHeader = () => {
     return (
         <div className="header">

@@ -18,12 +18,15 @@ import { getCategories, Category } from "@/api/category";
 import { getAuthors, Author } from "@/api/author";
 
 const ShopPage = () => {
-  // --- STATE DEFINITIONS ---
+  /* State Management */
+  // Filter-related state
   const [activeFilters, setActiveFilters] = useState<FilterState>({
     categories: [],
     authors: [],
     ratings: []
   });
+
+  // Book data state
   const [books, setBooks] = useState<BookViewModel[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,25 +34,23 @@ const ShopPage = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState<ValidPerPage>(15); // Default to 15
+  const [itemsPerPage, setItemsPerPage] = useState<ValidPerPage>(15);
+  const [totalBooks, setTotalBooks] = useState(0);
 
   // Sort state
   const [sortOption, setSortOption] = useState<SortOption>('onsale');
 
-  // Dropdown state
+  // UI state for dropdown menus
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const [perPageDropdownOpen, setPerPageDropdownOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const perPageDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Add a state variable for total books count
-  const [totalBooks, setTotalBooks] = useState(0);
-
-  // Add state for category and author names
+  // Mapping collections for display
   const [categoryMap, setCategoryMap] = useState<Map<number, string>>(new Map());
   const [authorMap, setAuthorMap] = useState<Map<number, string>>(new Map());
 
-  // Close dropdowns when clicking outside
+  /* Event listeners for dropdown UI interaction */
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
@@ -66,7 +67,7 @@ const ShopPage = () => {
     };
   }, []);
 
-  // Load categories and authors
+  /* Load category and author data for filtering */
   useEffect(() => {
     // Fetch categories
     getCategories()
@@ -95,7 +96,7 @@ const ShopPage = () => {
       });
   }, []);
 
-  // --- DATA FETCH FUNCTION ---
+  /* Main data fetching function */
   const fetchBooks = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -119,7 +120,7 @@ const ShopPage = () => {
 
       setBooks(transformedBooks);
       setTotalPages(response.pages || 1);
-      setTotalBooks(response.total || 0); // Store the total count from the API
+      setTotalBooks(response.total || 0);
     } catch {
       setError("Failed to fetch books. Please try again later.");
     } finally {
@@ -127,42 +128,44 @@ const ShopPage = () => {
     }
   }, [currentPage, activeFilters, itemsPerPage, sortOption]);
 
-  // Call fetchBooks whenever the dependencies change
+  /* Trigger data fetch when dependencies change */
   useEffect(() => {
     fetchBooks();
   }, [fetchBooks]);
 
-  // --- HANDLER FUNCTIONS ---
+  /* Event Handlers */
+  // Handle filter changes
   const handleFilterChange = (filters: FilterState) => {
-    // Important: Set current page to 1 BEFORE setting the activeFilters
-    // This ensures the page reset happens before the next API call
+    // Reset to first page when filters change
     setCurrentPage(1);
-
-    // Then update filters
     setActiveFilters(filters);
   };
 
+  // Handle pagination
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     // Scroll to top of the page for better UX
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Handle sort option changes
   const handleSortChange = (value: SortOption) => {
-    // Set page to 1 first, then change the sort option
+    // Reset to first page when sort changes
     setCurrentPage(1);
     setSortOption(value);
     setSortDropdownOpen(false);
   };
 
+  // Handle items per page changes
   const handlePerPageChange = (value: ValidPerPage) => {
-    // Set page to 1 first, then change items per page
+    // Reset to first page when per-page setting changes
     setCurrentPage(1);
     setItemsPerPage(value);
     setPerPageDropdownOpen(false);
   };
 
-  // Function to get sort option display text
+  /* Helper Functions */
+  // Get display text for sort options
   const getSortOptionText = (option: SortOption): string => {
     switch (option) {
       case 'onsale': return 'On Sale';
@@ -173,28 +176,31 @@ const ShopPage = () => {
     }
   };
 
-  // --- MAIN RENDER ---
+  /* Component Rendering */
   return (
     <div>
-      {/* --- HEADER SECTION --- */}
+      {/* Shop Header - Contains banner and active filter indicators */}
       <ShopHeader
         activeFilters={activeFilters}
         categoryNames={categoryMap}
         authorNames={authorMap}
       />
       <div className="flex flex-col md:flex-row gap-4 py-4">
-        {/* --- FILTERS SECTION --- */}
+        {/* Left Sidebar - Filter Controls */}
         <div className="w-full md:w-[15%] md:min-w-[15%] md:max-w-[15%] flex-shrink-0">
           <div className="w-full overflow-hidden">
             <BookFilters onFilterChange={handleFilterChange} />
           </div>
         </div>
+        {/* Spacer for layout */}
         <div className="hidden md:block md:w-[20px] md:min-w-[20px] md:max-w-[20px] flex-shrink-0"></div>
-        {/* --- BOOKS DISPLAY SECTION --- */}
+        {/* Main Content Area - Books Grid and Controls */}
         <div className="flex-grow">
           <div className="w-full">
             <div className="w-full flex flex-col gap-4">
+              {/* Results Summary and Controls Bar */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                {/* Results Count */}
                 <div>
                   {totalBooks > 0 ? (
                     <p className="text-sm">
@@ -206,6 +212,7 @@ const ShopPage = () => {
                     </p>
                   )}
                 </div>
+                {/* Sort and Pagination Controls */}
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   {/* Items per page dropdown */}
                   <div className="relative" ref={perPageDropdownRef}>
@@ -301,6 +308,7 @@ const ShopPage = () => {
               </div>
             </div>
 
+            {/* Book Grid with Loading and Error States */}
             {loading ? (
               <div className="flex justify-center items-center h-64">
                 <p>Loading books...</p>
@@ -332,7 +340,7 @@ const ShopPage = () => {
             )}
           </div>
 
-          {/* Pagination with reduced top spacing */}
+          {/* Pagination Controls */}
           {!loading && !error && books.length > 0 && (
             <div className="-mt-1">
               <ShopPagination

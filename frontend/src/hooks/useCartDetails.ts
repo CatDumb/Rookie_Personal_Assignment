@@ -1,7 +1,9 @@
+/* Cart Details Hook - Manages shopping cart data with detailed product information */
 import { useState, useEffect, useCallback } from 'react';
 import { getBookDetails, BookDetail } from '../api/book';
 import { dispatchCartUpdateEvent } from '../components/Context/CartContext'; // Import dispatch helper
 
+/* Type Definitions */
 // Interface for the basic cart item stored in localStorage
 interface CartItem {
   id: number;
@@ -23,13 +25,18 @@ export interface CartItemWithDetails extends BookDetailWithLegacy {
   order_item_total: number;
 }
 
+/**
+ * Custom hook to handle cart operations and maintain synchronized state
+ * with localStorage and detailed book information
+ */
 export const useCartDetails = () => {
+  /* State Management */
   const [cartItemsWithDetails, setCartItemsWithDetails] = useState<CartItemWithDetails[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [orderTotal, setOrderTotal] = useState<number>(0);
 
-  // Function to update localStorage and recalculate totals
+  /* Updates Cart in State and localStorage */
   const updateCartState = useCallback((updatedDetailedItems: CartItemWithDetails[]) => {
     setCartItemsWithDetails(updatedDetailedItems);
     const newTotal = updatedDetailedItems.reduce((sum, item) => sum + item.order_item_total, 0);
@@ -41,6 +48,7 @@ export const useCartDetails = () => {
     dispatchCartUpdateEvent(); // Dispatch event after updating storage
   }, []);
 
+  /* Fetches Full Book Details for Cart Items */
   const fetchCartDetails = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -52,6 +60,7 @@ export const useCartDetails = () => {
       const existingCart = localStorage.getItem('cart');
       let cart: CartItem[] = existingCart ? JSON.parse(existingCart) : [];
 
+      // Validate cart data structure
       if (!Array.isArray(cart)) {
         console.error('Cart data in local storage is not an array. Resetting.');
         cart = [];
@@ -59,6 +68,7 @@ export const useCartDetails = () => {
         dispatchCartUpdateEvent(); // Dispatch event after clearing invalid storage
       }
 
+      // Handle empty cart case
       if (cart.length === 0) {
         setCartItemsWithDetails([]); // Clear state if cart is empty
         setOrderTotal(0);
@@ -66,6 +76,7 @@ export const useCartDetails = () => {
         return;
       }
 
+      // Fetch detailed information for each cart item
       const detailPromises = cart.map(item =>
         getBookDetails(item.id).then(response => {
           // Get the effective price for calculation
@@ -99,11 +110,12 @@ export const useCartDetails = () => {
     }
   }, [updateCartState]); // Add updateCartState dependency
 
+  /* Fetch Cart Data on Component Mount */
   useEffect(() => {
     fetchCartDetails();
   }, [fetchCartDetails]); // Run fetch on mount and when fetchCartDetails changes
 
-  // Function to update item quantity
+  /* Update Item Quantity with Validation */
   const updateItemQuantity = useCallback((itemId: number, change: number) => {
     const MAX_QUANTITY = 8;
     let itemToRemove: CartItemWithDetails | null = null;
@@ -154,7 +166,7 @@ export const useCartDetails = () => {
 
   }, [cartItemsWithDetails, updateCartState]);
 
-  // Function to remove an item completely (e.g., via a dedicated remove button)
+  /* Remove Item from Cart with Confirmation */
   const removeItem = useCallback((itemId: number) => {
     const itemToRemove = cartItemsWithDetails.find(item => item.id === itemId);
     if (!itemToRemove) return; // Item not found
@@ -170,11 +182,12 @@ export const useCartDetails = () => {
     }
   }, [cartItemsWithDetails, updateCartState]);
 
-  // Function to manually refresh the cart
+  /* Refresh Cart Data Manually */
   const refreshCart = useCallback(() => {
     fetchCartDetails();
   }, [fetchCartDetails]);
 
+  /* Return Hook Values and Functions */
   return {
     cartItemsWithDetails,
     loading,

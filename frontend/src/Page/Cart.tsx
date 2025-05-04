@@ -1,4 +1,4 @@
-// --- IMPORTS ---
+/* Import dependencies and components */
 import { CartHeader } from "../components/Header/CartHeader";
 import { useCartDetails } from "../hooks/useCartDetails";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,7 @@ import api from "../api/client";
 import { dispatchCartUpdateEvent } from "../components/Context/CartContext";
 import { getBookDetails, BookDetailResponse } from "../api/book";
 
-// --- TYPES & INTERFACES ---
-// User details interface for the response
+/* Type definitions */
 interface UserDetails {
   id: number;
   email: string;
@@ -21,14 +20,13 @@ interface UserDetails {
   admin: boolean;
 }
 
-// Interface for invalid book data
 interface InvalidBookData {
   id: number;
   name: string;
   reason: string;
 }
 
-// --- COMPONENT DEFINITION ---
+/* Main Cart Page Component */
 export default function CartPage() {
     const { cartItemsWithDetails, orderTotal, loading, error, updateItemQuantity, refreshCart } = useCartDetails();
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -39,6 +37,7 @@ export default function CartPage() {
     const { isLoggedIn } = useAuth();
     const navigate = useNavigate();
 
+    /* Redirect timer effect after successful order */
     useEffect(() => {
         let timerId: NodeJS.Timeout | null = null;
         if (showSuccessNotification) {
@@ -54,7 +53,7 @@ export default function CartPage() {
         };
     }, [showSuccessNotification, navigate]);
 
-    // Function to validate books in cart
+    /* Validate cart items to ensure they're still available and prices match */
     const validateCartItems = async () => {
         setInvalidBooks([]);
         setValidationError(null);
@@ -62,16 +61,14 @@ export default function CartPage() {
         try {
             const invalidItems: InvalidBookData[] = [];
 
-            // Check each book in the cart
+            /* Check each book in the cart */
             for (const item of cartItemsWithDetails) {
                 try {
-                    // Get the latest book data from the API
+                    /* Get the latest book data from the API */
                     const response: BookDetailResponse = await getBookDetails(item.id);
                     const currentBookData = response.book;
 
-                    // Check if the book exists (will throw an error if it doesn't)
-
-                    // Check if the discount price matches what we have in cart
+                    /* Check if the discount price matches what we have in cart */
                     if (item.discount_price !== null && item.discount_price !== currentBookData.discount_price) {
                         invalidItems.push({
                             id: item.id,
@@ -81,11 +78,9 @@ export default function CartPage() {
                         continue;
                     }
 
-                    // Additional validations could be added here
-
                 } catch (error: Error | unknown) {
                     console.error(`Error validating book ${item.id}:`, error);
-                    // If we get here, the book likely doesn't exist anymore
+                    /* If we get here, the book likely doesn't exist anymore */
                     invalidItems.push({
                         id: item.id,
                         name: item.book_title || 'Unknown Book',
@@ -107,29 +102,29 @@ export default function CartPage() {
         }
     };
 
-    // Function to remove invalid books from cart
+    /* Remove invalid books from the cart */
     const removeInvalidBooks = () => {
         if (invalidBooks.length === 0) return;
 
-        // Get current cart
+        /* Get current cart */
         const cartItemsJson = localStorage.getItem('cart');
         const cartItems = cartItemsJson ? JSON.parse(cartItemsJson) : [];
 
-        // Filter out invalid books
+        /* Filter out invalid books */
         const updatedCartItems = cartItems.filter(
             (item: { id: number }) => !invalidBooks.some(invalidItem => invalidItem.id === item.id)
         );
 
-        // Update local storage
+        /* Update local storage */
         localStorage.setItem('cart', JSON.stringify(updatedCartItems));
 
-        // Dispatch cart update event to update UI
+        /* Dispatch cart update event to update UI */
         dispatchCartUpdateEvent();
 
-        // Refresh cart to show updated items
+        /* Refresh cart to show updated items */
         refreshCart();
 
-        // Reset invalid books and clear validation error
+        /* Reset invalid books and clear validation error */
         setInvalidBooks([]);
         setValidationError(null);
     };
@@ -142,8 +137,9 @@ export default function CartPage() {
         return <div className="text-red-500 text-center py-4">Error: {error}</div>;
     }
 
+    /* Handle the order placement process */
     const handlePlaceOrder = async () => {
-        // Check if user is logged in
+        /* Check if user is logged in */
         if (!isLoggedIn) {
             alert("Please log in to place an order");
             return;
@@ -159,7 +155,7 @@ export default function CartPage() {
         setValidationError(null);
 
         try {
-            // First validate all cart items
+            /* First validate all cart items */
             const isValid = await validateCartItems();
 
             if (!isValid) {
@@ -168,12 +164,12 @@ export default function CartPage() {
                 return;
             }
 
-            // Get the current user's details from the profile endpoint
+            /* Get the current user's details from the profile endpoint */
             const response = await api.get<UserDetails>('/api/user/profile');
             const userId = response.data.id;
             console.log("Got user ID:", userId);
 
-            // Prepare order data with user_id
+            /* Prepare order data with user_id */
             const orderData = {
                 user_id: userId,
                 order_date: new Date().toISOString(),
@@ -189,19 +185,19 @@ export default function CartPage() {
 
             console.log("Sending order data:", orderData);
 
-            // Call the API to create the order
+            /* Call the API to create the order */
             await createOrder(orderData);
 
-            // Clear the cart after successful order
+            /* Clear the cart after successful order */
             localStorage.setItem('cart', JSON.stringify([]));
 
-            // Explicitly dispatch the cart update event to update the navbar
+            /* Explicitly dispatch the cart update event to update the navbar */
             dispatchCartUpdateEvent();
 
-            // Trigger a refresh in the cart
+            /* Trigger a refresh in the cart */
             refreshCart();
 
-            // Show success message via state
+            /* Show success message via state */
             setShowSuccessNotification(true);
 
         } catch (err) {
@@ -214,12 +210,14 @@ export default function CartPage() {
 
     return (
         <div>
+            {/* Success notification - shows after successful order placement */}
             {showSuccessNotification && (
                 <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white p-4 rounded-lg shadow-lg z-[200] max-w-md w-full mx-auto text-center">
                     Order placed successfully! Redirecting to homepage shortly...
                 </div>
             )}
 
+            {/* Validation error notification - shows when items in cart are invalid */}
             {validationError && (
                 <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-600 text-white p-4 rounded-lg shadow-lg z-[200] max-w-md w-full mx-auto">
                     <p className="font-bold mb-2">Error</p>
@@ -243,8 +241,10 @@ export default function CartPage() {
                 </div>
             )}
 
+            {/* Cart header showing number of items */}
             <CartHeader text={cartItemsWithDetails.length.toString()} />
             <div className="flex flex-col md:flex-row gap-4 py-4">
+                {/* Cart items table section */}
                 <div className="w-full md:w-[60%] border-2 border-gray-400 rounded-lg">
                     <table className="w-full">
                         <thead>
@@ -317,6 +317,7 @@ export default function CartPage() {
                     </table>
                 </div>
                 <div className="hidden md:block md:w-[20px] md:min-w-[20px] md:max-w-[20px] flex-shrink-0"></div>
+                {/* Order summary and checkout section */}
                 <div className="w-full md:w-[40%] h-fit border-2 border-gray-400 rounded-lg p-4">
                     <div className="text-xl text-center font-bold mb-2">
                         Cart Totals

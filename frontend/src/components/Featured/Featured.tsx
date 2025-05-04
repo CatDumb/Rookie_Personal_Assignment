@@ -1,9 +1,11 @@
+/* Featured Component - Displays recommended and popular books in a tabbed interface */
 import { useState, useEffect } from "react";
 import { BookCard } from "../ui/card";
 import { getRecommendations, RecommendResponse, getPopular, PopularResponse } from "../../api/book";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
 function Featured() {
+  /* State Management */
   const [recommendedBooks, setRecommendedBooks] = useState<RecommendResponse[]>([]);
   const [popularBooks, setPopularBooks] = useState<PopularResponse[]>([]);
   const [recommendedLoading, setRecommendedLoading] = useState(false);
@@ -12,7 +14,7 @@ function Featured() {
   const [popularError, setPopularError] = useState("");
   const [activeTab, setActiveTab] = useState("recommended");
 
-  // Fetch recommended books
+  /* Fetch Recommended Books on Component Mount */
   useEffect(() => {
     setRecommendedLoading(true);
     setRecommendedError("");
@@ -30,7 +32,7 @@ function Featured() {
       });
   }, []);
 
-  // Fetch popular books when that tab is selected
+  /* Fetch Popular Books When Tab Selected (Lazy Loading) */
   useEffect(() => {
     if (activeTab === "popular" && popularBooks.length === 0) {
       setPopularLoading(true);
@@ -51,15 +53,18 @@ function Featured() {
 
   return (
     <div className="flex flex-col gap-4 py-4 justify-center">
+      {/* Section Title */}
       <div className="flex justify-center items-center">
         <div className="text-lg font-bold">Featured</div>
       </div>
 
+      {/* Tab Container */}
       <Tabs
         defaultValue="recommended"
         className="w-full"
         onValueChange={(value) => setActiveTab(value)}
       >
+        {/* Tab Navigation */}
         <div className="flex justify-center">
           <TabsList className="grid w-96 grid-cols-2">
             <TabsTrigger value="recommended">Recommended</TabsTrigger>
@@ -67,7 +72,9 @@ function Featured() {
           </TabsList>
         </div>
 
+        {/* Tab Content Container */}
         <div className="border-2 border-gray-400 rounded-lg py-5 px-4 w-full mt-4">
+          {/* Recommended Books Tab */}
           <TabsContent value="recommended">
             {recommendedLoading ? (
               <div className="text-center py-8">Loading...</div>
@@ -90,6 +97,7 @@ function Featured() {
             )}
           </TabsContent>
 
+          {/* Popular Books Tab */}
           <TabsContent value="popular">
             {popularLoading ? (
               <div className="text-center py-8">Loading...</div>

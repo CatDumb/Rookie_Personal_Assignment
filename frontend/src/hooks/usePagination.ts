@@ -1,59 +1,115 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+/* Pagination Hook - Handles pagination logic and state management */
+import { useState, useEffect, useCallback } from 'react';
 
-interface UsePaginationProps<T> {
-  data: T[];
-  itemsPerPage: number;
-  initialPage?: number;
+/* Configuration Options Interface */
+interface PaginationOptions {
+    initialPage?: number;
+    totalItems: number;
+    itemsPerPage: number;
+    maxPagesToShow?: number;
 }
 
-export const usePagination = <T,>({
-  data,
-  itemsPerPage,
-  initialPage = 1
-}: UsePaginationProps<T>) => {
+/**
+ * Custom hook for handling pagination calculations and state
+ * @param options Configuration options for pagination
+ * @returns Object with pagination state and control functions
+ */
+export function usePagination({
+    initialPage = 1,
+    totalItems,
+    itemsPerPage,
+    maxPagesToShow = 5
+}: PaginationOptions) {
+    /* Basic State */
+    const [currentPage, setCurrentPage] = useState(initialPage);
 
-  const [currentPage, setCurrentPage] = useState<number>(initialPage);
+    /* Derived Calculations */
+    // Calculate total number of pages
+    const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
-  // Memoize calculations to avoid recomputing on every render
-  const totalPages = useMemo(() => Math.ceil(data.length / itemsPerPage), [data.length, itemsPerPage]);
+    // Calculate indexes for displaying items
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage - 1, totalItems - 1);
 
-  const paginatedData = useMemo(() => {
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    return data.slice(indexOfFirstItem, indexOfLastItem);
-  }, [data, currentPage, itemsPerPage]);
+    /* Page Navigation Handlers */
+    // Go to specific page with validation
+    const goToPage = useCallback((page: number) => {
+        const validPage = Math.max(1, Math.min(page, totalPages));
+        setCurrentPage(validPage);
+    }, [totalPages]);
 
-  // Ensure currentPage stays within valid bounds
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages); // Go to last page if current page becomes invalid
-    } else if (currentPage < 1 && data.length > 0) {
-        setCurrentPage(1); // Go to first page if current page is invalid
-    }
-  }, [currentPage, totalPages, data.length]);
+    // Go to next page
+    const nextPage = useCallback(() => {
+        if (currentPage < totalPages) {
+            setCurrentPage(prev => prev + 1);
+        }
+    }, [currentPage, totalPages]);
 
-  // Handlers are memoized using useCallback
-  const handlePageChange = useCallback((page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  }, [totalPages]);
+    // Go to previous page
+    const prevPage = useCallback(() => {
+        if (currentPage > 1) {
+            setCurrentPage(prev => prev - 1);
+        }
+    }, [currentPage]);
 
-  const nextPage = useCallback(() => {
-    setCurrentPage(prev => Math.min(prev + 1, totalPages));
-  }, [totalPages]);
+    /* Page Number Generation for UI */
+    // Generate array of page numbers to display
+    const getPageNumbers = useCallback(() => {
+        if (totalPages <= maxPagesToShow) {
+            return Array.from({ length: totalPages }, (_, i) => i + 1);
+        }
 
-  const prevPage = useCallback(() => {
-    setCurrentPage(prev => Math.max(prev - 1, 1));
-  }, []);
+        // Complex logic for showing limited page numbers with ellipsis
+        const leftSiblingIndex = Math.max(currentPage - 1, 1);
+        const rightSiblingIndex = Math.min(currentPage + 1, totalPages);
 
-  return {
-    currentPage,
-    totalPages,
-    paginatedData,
-    handlePageChange,
-    setCurrentPage, // Expose setter if direct page setting is needed
-    nextPage,
-    prevPage
-  };
-};
+        const shouldShowLeftDots = leftSiblingIndex > 2;
+        const shouldShowRightDots = rightSiblingIndex < totalPages - 1;
+
+        if (!shouldShowLeftDots && shouldShowRightDots) {
+            // Show more pages at beginning
+            const leftItemCount = 3 + (maxPagesToShow - 5);
+            const leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
+            return [...leftRange, -1, totalPages];
+        }
+
+        if (shouldShowLeftDots && !shouldShowRightDots) {
+            // Show more pages at end
+            const rightItemCount = 3 + (maxPagesToShow - 5);
+            const rightRange = Array.from(
+                { length: rightItemCount },
+                (_, i) => totalPages - rightItemCount + i + 1
+            );
+            return [1, -1, ...rightRange];
+        }
+
+        if (shouldShowLeftDots && shouldShowRightDots) {
+            // Show pages around current
+            const middleRange = [leftSiblingIndex, currentPage, rightSiblingIndex];
+            return [1, -1, ...middleRange, -1, totalPages];
+        }
+
+        return [];
+    }, [currentPage, totalPages, maxPagesToShow]);
+
+    /* Reset to First Page When Total Changes */
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(1);
+        }
+    }, [totalPages, currentPage]);
+
+    /* Return Values and Functions */
+    return {
+        currentPage,
+        totalPages,
+        startIndex,
+        endIndex,
+        pageNumbers: getPageNumbers(),
+        goToPage,
+        nextPage,
+        prevPage,
+        hasNextPage: currentPage < totalPages,
+        hasPrevPage: currentPage > 1
+    };
+}

@@ -1,8 +1,10 @@
+/* Authentication Context - Manages user authentication state and token handling */
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { login, LoginPayload, refreshToken } from '../../api/auth';
 import { jwtDecode } from 'jwt-decode';
 import { dispatchCartUpdateEvent } from './CartContext';
 
+/* Type Definitions */
 interface JwtPayload {
   exp: number;
   sub: string;
@@ -23,8 +25,10 @@ interface AuthContextType {
   error: string | null;
 }
 
+/* Context Creation */
 const AuthContext = createContext<AuthContextType | null>(null);
 
+/* Custom Hook for Using Auth Context */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -37,7 +41,9 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+/* Authentication Provider Component */
 export const AuthProvider = ({ children }: AuthProviderProps) => {
+  /* State Management */
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [firstName, setFirstName] = useState<string | null>(null);
   const [lastName, setLastName] = useState<string | null>(null);
@@ -45,7 +51,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [error, setError] = useState<string | null>(null);
   const [refreshTimerId, setRefreshTimerId] = useState<number | null>(null);
 
-  // Check token validity and schedule refresh if needed
+  /* Token Validation and Refresh Scheduling */
   const checkAndScheduleRefresh = () => {
     try {
       const token = localStorage.getItem('access_token');
@@ -96,6 +102,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  /* Token Refresh Handler */
   const handleRefreshToken = async () => {
     try {
       const refreshTokenValue = localStorage.getItem('refresh_token');
@@ -124,7 +131,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  // Check if user is logged in on initial load
+  /* Initial Authentication Check on Component Mount */
   useEffect(() => {
     const checkAuth = async () => {
       const accessToken = localStorage.getItem('access_token');
@@ -184,6 +191,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
   }, []);
 
+  /* Login Handler */
   const handleLogin = async (payload: LoginPayload): Promise<boolean> => {
     setLoading(true);
     setError(null);
@@ -230,6 +238,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  /* Logout Handler */
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
@@ -251,6 +260,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setLastName(null);
   };
 
+  /* Context Provider Value */
   const value = {
     isLoggedIn,
     firstName,

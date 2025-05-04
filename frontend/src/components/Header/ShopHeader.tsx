@@ -1,27 +1,36 @@
+/* Shop Header Component - Displays page title with active filter information */
 interface FilterState {
   categories: number[];
   authors: number[];
   ratings: number[];
 }
 
+/* Props Interface */
 interface ShopHeaderProps {
   activeFilters?: FilterState;
   categoryNames?: Map<number, string>;
   authorNames?: Map<number, string>;
 }
 
+/**
+ * Shop page header with filter information display
+ * Shows active filters using human-readable category and author names
+ */
 export const ShopHeader = ({ activeFilters, categoryNames, authorNames }: ShopHeaderProps) => {
+    /* Check if any filters are active */
     const hasFilters = activeFilters && (
         activeFilters.categories.length > 0 ||
         activeFilters.authors.length > 0 ||
         activeFilters.ratings.length > 0
     );
 
+    /* Build human-readable filter description string */
     const buildFilterString = () => {
         if (!activeFilters || !hasFilters) return "";
 
         const parts = [];
 
+        // Add category filters
         if (activeFilters.categories.length > 0) {
             const names = activeFilters.categories
                 .map(id => categoryNames?.get(id) || `Category ${id}`)
@@ -29,6 +38,7 @@ export const ShopHeader = ({ activeFilters, categoryNames, authorNames }: ShopHe
             parts.push(`category(s): ${names}`);
         }
 
+        // Add author filters
         if (activeFilters.authors.length > 0) {
             const names = activeFilters.authors
                 .map(id => authorNames?.get(id) || `Author ${id}`)
@@ -36,6 +46,7 @@ export const ShopHeader = ({ activeFilters, categoryNames, authorNames }: ShopHe
             parts.push(`author(s): ${names}`);
         }
 
+        // Add rating filters
         if (activeFilters.ratings.length > 0) {
             const rating = activeFilters.ratings[0];
             parts.push(`rating: ${rating} ${rating === 1 ? 'star' : 'stars'}`);
@@ -54,6 +65,7 @@ export const ShopHeader = ({ activeFilters, categoryNames, authorNames }: ShopHe
         return `(Filtered by ${filterText})`;
     };
 
+    /* Render header with title and filter information */
     return (
         <div className="header">
             <div className="font-bold my-4 text-2xl">

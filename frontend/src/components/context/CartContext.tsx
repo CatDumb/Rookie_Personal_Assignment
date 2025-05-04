@@ -1,20 +1,26 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
+/* Cart Context - Manages shopping cart state and synchronization across components */
+import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 
-interface CartItem {
-  id: number;
-  quantity: number;
-}
+/* Custom Event for Cart Updates */
+export const dispatchCartUpdateEvent = () => {
+  // Create a custom event that components can listen for
+  const event = new CustomEvent('cart-updated');
+  window.dispatchEvent(event);
+};
 
+/* Type Definitions */
 interface CartContextType {
   cartItemCount: number;
   refreshCartCount: () => void; // Function to manually trigger a count refresh
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+/* Context Creation */
+const CartContext = createContext<CartContextType | null>(null);
 
+/* Custom Hook for Using Cart Context */
 export const useCart = () => {
   const context = useContext(CartContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useCart must be used within a CartProvider');
   }
   return context;
@@ -24,60 +30,66 @@ interface CartProviderProps {
   children: ReactNode;
 }
 
-// Function to get cart count from localStorage
-const getCartCountFromStorage = (): number => {
-  try {
-    const existingCart = localStorage.getItem('cart');
-    const cart: CartItem[] = existingCart ? JSON.parse(existingCart) : [];
-    // Ensure cart is an array before calculating count
-    return Array.isArray(cart) ? cart.length : 0;
-  } catch (error) {
-    console.error('Failed to parse cart from local storage:', error);
-    localStorage.setItem('cart', JSON.stringify([])); // Clear invalid cart data
-    return 0;
-  }
-};
+/* Cart Item Structure */
+interface CartItem {
+  id: number;
+  quantity: number;
+}
 
-export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
-  const [cartItemCount, setCartItemCount] = useState<number>(getCartCountFromStorage());
+/* Cart Provider Component */
+export const CartProvider = ({ children }: CartProviderProps) => {
+  /* State Management */
+  const [cartItemCount, setCartItemCount] = useState<number>(0);
 
-  // Function to refresh count, memoized with useCallback
-  const refreshCartCount = useCallback(() => {
-      setCartItemCount(getCartCountFromStorage());
+  /* Calculate Cart Item Count from Local Storage */
+  const calculateCartItemCount = () => {
+    try {
+      const cartItemsJson = localStorage.getItem('cart');
+      if (cartItemsJson) {
+        const cartItems: CartItem[] = JSON.parse(cartItemsJson);
+        const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+        return totalItems;
+      }
+      return 0;
+    } catch (error) {
+      console.error('Error calculating cart items:', error);
+      return 0;
+    }
+  };
+
+  /* Function to manually refresh cart count */
+  const refreshCartCount = () => {
+    setCartItemCount(calculateCartItemCount());
+  };
+
+  /* Update Cart Count on Mount and When Cart Changes */
+  useEffect(() => {
+    // Initialize cart item count
+    setCartItemCount(calculateCartItemCount());
+
+    // Update cart item count whenever the cart is updated
+    const handleCartUpdated = () => {
+      setCartItemCount(calculateCartItemCount());
+    };
+
+    // Listen for custom cart update events
+    window.addEventListener('cart-updated', handleCartUpdated);
+
+    // Clean up the event listener on unmount
+    return () => {
+      window.removeEventListener('cart-updated', handleCartUpdated);
+    };
   }, []);
 
-  useEffect(() => {
-    // Initial count is set via useState initializer
+  /* Context Provider Value */
+  const value = {
+    cartItemCount,
+    refreshCartCount
+  };
 
-    // Listener for storage events (updates from other tabs/windows)
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'cart') {
-        refreshCartCount();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    // Listener for custom 'cartUpdated' event (updates within the same tab)
-    const handleCartUpdate = () => {
-        refreshCartCount();
-    };
-
-    window.addEventListener('cartUpdated', handleCartUpdate);
-
-    // Cleanup listeners on component unmount
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('cartUpdated', handleCartUpdate);
-    };
-  }, [refreshCartCount]); // Dependency on the memoized refresh function
-
-  const value = { cartItemCount, refreshCartCount };
-
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
-};
-
-// Helper function to dispatch the custom event
-export const dispatchCartUpdateEvent = () => {
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+    </CartContext.Provider>
+  );
 };
