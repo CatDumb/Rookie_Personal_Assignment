@@ -190,7 +190,7 @@ export const BookFilters = ({ onFilterChange }: BookFiltersProps) => {
                             )}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="item-3" className="border border-gray-300 rounded-md mb-2 relative w-full overflow-hidden">
+                    <AccordionItem value="item-3" className="border border-gray-300 rounded-md mb-2 w-full overflow-hidden" style={{ borderBottom: '1px solid rgb(209, 213, 219)' }}>
                         <AccordionTrigger className="p-2 w-full">
                             <div className="w-full text-left">Rating</div>
                         </AccordionTrigger>

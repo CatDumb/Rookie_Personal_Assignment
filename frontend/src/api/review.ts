@@ -1,22 +1,47 @@
 import api from "./client";
 
 export interface ReviewPostResponse {
+  id: number;
   book_id: number;
-  review_title: string;
-  review_details?: string;
-  review_date: string;
+  user_id: number;
   rating_star: number;
+  review_date: string;
+  review_title: string;
+  review_details: string | null;
 }
 
 export interface ReviewPostRequest {
   book_id: number;
-  review_title: string;
   rating_star: number;
+  review_title: string;
   review_details?: string;
 }
 
+export interface ReviewFilterRequest {
+  book_id: number;
+  page?: number;
+  per_page?: number;
+  sort_order?: 'newest' | 'oldest' | 'highest_rating' | 'lowest_rating';
+  rating?: number;
+}
 
-export interface PaginatedReviewsResponse {
+export interface ReviewUpdateRequest {
+  rating_star?: number;
+  review_title?: string;
+  review_details?: string;
+}
+
+export interface ReviewResponse {
+  id: number;
+  book_id: number;
+  user_id: number;
+  rating_star: number;
+  review_date: string;
+  review_title: string;
+  review_details: string | null;
+}
+
+export interface ReviewsResponse {
   items: ReviewPostResponse[];
   total: number;
   page: number;
@@ -24,39 +49,34 @@ export interface PaginatedReviewsResponse {
   pages: number;
 }
 
-
-export function postReview(review: ReviewPostRequest) {
-  return api.post<ReviewPostResponse>(`api/review/book/${review.book_id}`, review)
-    .then(res => {
-      return res.data;
-    });
-}
-
-export interface ReviewFilterRequest {
-  book_id: number;
-  page?: number; // Make optional with default 1
-  per_page?: number; // Make optional with default 5
-  rating?: number; // Make optional
-  sort_order: 'newest' | 'oldest'; // Add literal type
-}
-
 export function getReviews(filters: ReviewFilterRequest) {
-  // Build query parameters, only including rating if it's a valid number
-  const queryParams = new URLSearchParams({
-    page: filters.page?.toString() || '1',
-    per_page: filters.per_page?.toString() || '5',
-    sort_order: filters.sort_order
-  });
+  // Build query params
+  const queryParams = new URLSearchParams();
+  if (filters.page) queryParams.append('page', filters.page.toString());
+  if (filters.per_page) queryParams.append('per_page', filters.per_page.toString());
+  if (filters.sort_order) queryParams.append('sort_order', filters.sort_order);
+  if (filters.rating) queryParams.append('rating', filters.rating.toString());
 
-  // Only add rating if it's a valid number between 1 and 5
-  if (filters.rating && filters.rating >= 1 && filters.rating <= 5) {
-    queryParams.append('rating', filters.rating.toString());
-  }
+  // Construct URL with query params
+  const url = `/api/review/book/${filters.book_id}?${queryParams.toString()}`;
 
-  return api.get<PaginatedReviewsResponse>(`api/review/book/${filters.book_id}?${queryParams.toString()}`)
-    .then(res => {
-      return res.data;
-    });
+  return api.get<ReviewsResponse>(url)
+    .then(res => res.data);
+}
+
+export function postReview(reviewData: ReviewPostRequest) {
+  return api.post<ReviewPostResponse>('/api/review/book', reviewData)
+    .then(res => res.data);
+}
+
+export function updateReview(reviewId: number, reviewData: ReviewUpdateRequest) {
+  return api.put<ReviewResponse>(`/api/review/${reviewId}`, reviewData)
+    .then(res => res.data);
+}
+
+export function deleteReview(reviewId: number) {
+  return api.delete<void>(`/api/review/${reviewId}`)
+    .then(res => res.data);
 }
 
 export interface BookStats {
@@ -74,8 +94,14 @@ export interface BookStatsResponse {
 }
 
 export function getBookStats(book_id: number) {
-  return api.get<BookStatsResponse>(`api/review/book/${book_id}/stats`)
+  return api.get<BookStatsResponse>(`/api/review/book/${book_id}/stats`)
     .then(res => {
+      console.log("Book stats API response:", res.data);
       return res.data;
+    })
+    .catch(error => {
+      console.error("Error fetching book stats:", error);
+      // Return a default empty response to prevent UI errors
+      return { items: [] } as BookStatsResponse;
     });
 }

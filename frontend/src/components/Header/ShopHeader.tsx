@@ -6,14 +6,53 @@ interface FilterState {
 
 interface ShopHeaderProps {
   activeFilters?: FilterState;
+  categoryNames?: Map<number, string>;
+  authorNames?: Map<number, string>;
 }
 
-export const ShopHeader = ({ activeFilters }: ShopHeaderProps) => {
+export const ShopHeader = ({ activeFilters, categoryNames, authorNames }: ShopHeaderProps) => {
     const hasFilters = activeFilters && (
         activeFilters.categories.length > 0 ||
         activeFilters.authors.length > 0 ||
         activeFilters.ratings.length > 0
     );
+
+    const buildFilterString = () => {
+        if (!activeFilters || !hasFilters) return "";
+
+        const parts = [];
+
+        if (activeFilters.categories.length > 0) {
+            const names = activeFilters.categories
+                .map(id => categoryNames?.get(id) || `Category ${id}`)
+                .join(', ');
+            parts.push(`category(s): ${names}`);
+        }
+
+        if (activeFilters.authors.length > 0) {
+            const names = activeFilters.authors
+                .map(id => authorNames?.get(id) || `Author ${id}`)
+                .join(', ');
+            parts.push(`author(s): ${names}`);
+        }
+
+        if (activeFilters.ratings.length > 0) {
+            const rating = activeFilters.ratings[0];
+            parts.push(`rating: ${rating} ${rating === 1 ? 'star' : 'stars'}`);
+        }
+
+        // Join the parts with commas and 'and' before the last part
+        let filterText = "";
+        if (parts.length === 1) {
+            filterText = parts[0];
+        } else if (parts.length === 2) {
+            filterText = parts.join(' and ');
+        } else if (parts.length > 2) {
+            filterText = parts.slice(0, -1).join(', ') + ', and ' + parts[parts.length - 1];
+        }
+
+        return `(Filtered by ${filterText})`;
+    };
 
     return (
         <div className="header">
@@ -22,19 +61,7 @@ export const ShopHeader = ({ activeFilters }: ShopHeaderProps) => {
                     <h3>Book</h3>
                     {hasFilters && (
                         <span className="text-sm font-light text-gray-600">
-                            {`(Filtered by `}
-                            {activeFilters?.categories.length > 0 &&
-                                `${activeFilters.categories.length} categories`}
-                            {activeFilters?.categories.length > 0 &&
-                             activeFilters?.authors.length > 0 && ', '}
-                            {activeFilters?.authors.length > 0 &&
-                                `${activeFilters.authors.length} authors`}
-                            {(activeFilters?.categories.length > 0 ||
-                              activeFilters?.authors.length > 0) &&
-                             activeFilters?.ratings.length > 0 && ', '}
-                            {activeFilters?.ratings.length > 0 &&
-                                `${activeFilters.ratings[0]}-stars rating`}
-                            {`)`}
+                            {buildFilterString()}
                         </span>
                     )}
                 </div>

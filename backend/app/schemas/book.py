@@ -117,8 +117,6 @@ class PopularBooksResponse(ItemsResponse[PopularBook]):
 class BookFilterRequest(BaseModel):
     page: int = 1
     per_page: int = 15
-    category_id: Optional[int] = None
-    author_id: Optional[int] = None
     category_ids: Optional[List[int]] = None  # Allow multiple IDs
     author_ids: Optional[List[int]] = None  # Allow multiple IDs
     category_ids_csv: Optional[str] = Field(

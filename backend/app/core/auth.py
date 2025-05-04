@@ -177,11 +177,11 @@ async def get_current_user(
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
-        token_data = TokenData(username=email)
+        token_data = TokenData(email=email)
     except JWTError:
         raise credentials_exception
 
-    user = get_public_user(db, token_data.username)
+    user = get_public_user(db, token_data.email)
     if user is None:
         raise credentials_exception
     return user

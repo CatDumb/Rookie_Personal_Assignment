@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getBookDetails, BookDetail } from '../api/book';
+import { getBookDetails, BookDetail, BookDetailResponse } from '../api/book';
 
 export const useBookDetails = (bookId: number | null) => {
   const [book, setBook] = useState<BookDetail | null>(null);
@@ -19,18 +19,22 @@ export const useBookDetails = (bookId: number | null) => {
     setError('');
     setBook(null); // Reset book state on new ID
 
+    console.log(`useBookDetails: Fetching details for book ID ${bookId}`);
+
     getBookDetails(bookId)
-      .then((data) => {
+      .then((data: BookDetailResponse) => {
+        console.log(`useBookDetails: Successfully received data for book ID ${bookId}`, data);
         if (data && data.book) {
             setBook(data.book);
         } else {
+            console.error(`useBookDetails: Book data missing in response for ID ${bookId}`, data);
             setError("Book data not found in response.");
         }
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Error fetching book details:", err);
-        setError("Failed to load book details");
+        console.error(`useBookDetails: Error fetching book details for ID ${bookId}:`, err);
+        setError(err?.message || "Failed to load book details");
         setLoading(false);
       });
 

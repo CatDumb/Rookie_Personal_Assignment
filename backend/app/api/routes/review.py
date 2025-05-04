@@ -201,13 +201,12 @@ async def get_book_stats(
 
 
 @router.post(
-    "/book/{book_id}",  # book_id in path is now redundant if it's in the body
+    "/book",  # book_id in path is now redundant if it's in the body
     status_code=status.HTTP_201_CREATED,
     response_model=ReviewPostResponse,  # Use imported schema
 )
 # Pass book_id via path parameter for consistency or remove if always in body
 async def add_book_review(
-    book_id: int,
     review: ReviewPostRequest,
     db: Session = Depends(get_db),
 ):
@@ -215,7 +214,7 @@ async def add_book_review(
     Add a review for a specific book.
     """
     # Validate book_id consistency
-    if review.book_id != book_id:
+    if review.book_id != review.book_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Book ID in path does not match Book ID in request body.",

@@ -16,10 +16,10 @@ export function ReviewItem({ title, date, rating, content }: ReviewItemProps) {
   return (
     <div className="border-b border-gray-200 py-4">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="font-semibold text-xl">{title} | <span className="text-gray-500 text-sm">{rating} Star</span></h3>
+        <h3 className="font-semibold text-xl break-words overflow-hidden">{title} | <span className="text-gray-500 text-sm">{rating} Star</span></h3>
       </div>
 
-      <p className="text-gray-700">{content}</p>
+      <p className="text-gray-700 break-words overflow-hidden">{content}</p>
 
       <div className="flex justify-between text-sm text-gray-500 mb-2">
         <span>{formattedDate}</span>

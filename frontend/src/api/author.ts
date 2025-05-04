@@ -7,7 +7,7 @@ export interface Author {
 }
 
 export function getAuthors() {
-    return api.get<Author[]>("api/author/")
+    return api.get<Author[]>("/api/author/")
         .then(res => {
             if (res.data && Array.isArray(res.data)) {
                 return res.data;

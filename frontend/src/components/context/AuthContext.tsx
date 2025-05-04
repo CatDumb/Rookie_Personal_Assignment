@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { login, LoginPayload, refreshToken } from '../../api/auth';
 import { jwtDecode } from 'jwt-decode';
+import { dispatchCartUpdateEvent } from './CartContext';
 
 interface JwtPayload {
   exp: number;
@@ -206,16 +207,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setLoading(false);
         return true;
       } else {
-        setError('Login failed: Invalid credentials');
+        setError('Invalid email or password');
         setLoading(false);
         return false;
       }
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError('Login failed: An error occurred ' + err.message);
+      console.error('Login error:', err);
+
+      // Check if the error has response and status properties, typical of Axios errors
+      if (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'status' in err.response && err.response.status === 401) {
+        setError('Invalid email or password');
+      } else if (err instanceof Error) {
+        // Handle other specific errors if needed, or show a generic message
+        setError('Login failed: An error occurred. Please try again later.');
       } else {
-        setError('Login failed: An unknown error occurred');
+        // Fallback for unknown error types
+        setError('Login failed: An unknown error occurred.');
       }
+
       setLoading(false);
       return false;
     }
@@ -227,6 +236,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.removeItem('first_name');
     localStorage.removeItem('last_name');
     localStorage.removeItem('cart');
+
+    // Dispatch event to update cart count
+    dispatchCartUpdateEvent();
 
     // Clear refresh timer
     if (refreshTimerId !== null) {

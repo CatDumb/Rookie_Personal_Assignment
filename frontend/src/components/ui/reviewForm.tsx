@@ -18,10 +18,10 @@ import { useState } from "react"
 import { postReview } from "../../api/review"
 
 const FormSchema = z.object({
-  review_title: z.string().min(2, {
-    message: "Title must be at least 2 characters.",
-  }).max(100, {
-    message: "Title cannot exceed 100 characters.",
+  review_title: z.string().min(1, {
+    message: "Title must be at least 1 characters.",
+  }).max(120, {
+    message: "Title cannot exceed 120 characters.",
   }),
   review_details: z.string().max(1000, {
     message: "Review cannot exceed 1000 characters.",

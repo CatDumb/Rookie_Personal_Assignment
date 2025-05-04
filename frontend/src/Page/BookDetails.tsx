@@ -5,10 +5,10 @@ import { BookHeader } from '../components/Header/BookHeader';
 import { Button } from '../components/ui/button';
 import { ReviewForm } from '../components/ui/reviewForm';
 import { ReviewItem } from '../components/ui/reviewItem';
-import { useAuth } from '@/components/Context/AuthContext';
 import { QuantitySelector } from '@/components/ui/quantitySelector';
 import { dispatchCartUpdateEvent } from '@/components/Context/CartContext';
 import { useBookDetails } from '@/hooks/useBookDetails';
+import { useAuth } from '../components/Context/AuthContext';
 
 import {
   Pagination,
@@ -25,6 +25,12 @@ import { getReviews, ReviewFilterRequest, ReviewPostResponse, getBookStats, Book
 // Use the ReviewPostResponse type from the API
 type Review = ReviewPostResponse;
 
+// Type for cart items
+interface CartItem {
+  id: number;
+  quantity: number;
+}
+
 const BookDetails = () => {
   const { id } = useParams<{ id: string }>();
   const numericId = id ? parseInt(id, 10) : null;
@@ -37,7 +43,7 @@ const BookDetails = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loadingReviews, setLoadingReviews] = useState(false);
-  const [bookStats, setBookStats] = useState<BookStatsResponse | null>(null);
+  const [bookStats, setBookStats] = useState<BookStatsResponse>({ items: [] });
   const [activeRatingFilter, setActiveRatingFilter] = useState<number | null>(null);
 
   const fetchBookStats = useCallback(async () => {
@@ -45,9 +51,11 @@ const BookDetails = () => {
 
     try {
       const stats = await getBookStats(numericId);
-      setBookStats(stats);
+      console.log("Book stats received:", stats);
+      setBookStats(stats || { items: [] });
     } catch (error) {
       console.error('Failed to fetch book stats:', error);
+      setBookStats({ items: [] }); // Default empty stats
     }
   }, [numericId]);
 
@@ -65,10 +73,12 @@ const BookDetails = () => {
       };
 
       const response = await getReviews(filters);
-      setReviews(response.items);
-      setTotalPages(response.pages);
+      setReviews(response.items || []);
+      setTotalPages(response.pages || 1);
     } catch (error) {
       console.error('Failed to fetch reviews:', error);
+      setReviews([]);
+      setTotalPages(1);
     } finally {
       setLoadingReviews(false);
     }
@@ -97,77 +107,42 @@ const BookDetails = () => {
     }
   };
 
-  const decrementQuantity = () => {
-    setQuantity(prev => (prev > 1 ? prev - 1 : 1));
-  };
-
-  const incrementQuantity = () => {
-    setQuantity(prev => (prev < 8 ? prev + 1 : 8));
-  };
-
   const handleAddToCart = () => {
+    if (!book) {
+      return;
+    }
+
     if (!isLoggedIn) {
       alert('Please log in to add items to your cart.');
       return;
     }
-    if (book) {
-      try {
-        const existingCart = localStorage.getItem('cart');
-        let cart = existingCart ? JSON.parse(existingCart) : [];
 
-        if (!Array.isArray(cart)) {
-          console.error('Cart data in local storage is not an array. Resetting.');
-          cart = [];
-        }
+    // Get current cart items from localStorage
+    const cartItemsJson = localStorage.getItem('cart');
+    const cartItems: CartItem[] = cartItemsJson ? JSON.parse(cartItemsJson) : [];
 
-        const existingItemIndex = cart.findIndex((item: { id: number }) => item.id === book.id);
+    // Check if item already exists in cart
+    const existingItemIndex = cartItems.findIndex((item: CartItem) => item.id === book.id);
 
-        if (existingItemIndex > -1) {
-          const currentQuantityInCart = cart[existingItemIndex].quantity;
-          const potentialQuantity = currentQuantityInCart + quantity;
-          const MAX_QUANTITY = 8;
-
-          if (currentQuantityInCart >= MAX_QUANTITY) {
-              alert('You already have the maximum quantity (8) of this item in your cart.');
-              return;
-          } else if (potentialQuantity > MAX_QUANTITY) {
-              const quantityToAdd = MAX_QUANTITY - currentQuantityInCart;
-              cart[existingItemIndex].quantity = MAX_QUANTITY;
-              alert(`Quantity limit reached. Added ${quantityToAdd} item(s) to reach the maximum of ${MAX_QUANTITY}.`);
-          } else {
-              cart[existingItemIndex].quantity += quantity;
-              alert('Item quantity updated in cart!');
-          }
-
-        } else {
-          const MAX_QUANTITY = 8;
-          let quantityToAdd = quantity;
-          let alertMessage = 'Item added to cart!';
-
-          if (quantity > MAX_QUANTITY) {
-              quantityToAdd = MAX_QUANTITY;
-              alertMessage = `Quantity limit is ${MAX_QUANTITY}. Added ${MAX_QUANTITY} items to cart.`;
-          }
-
-          const newItem = { id: book.id, quantity: quantityToAdd };
-          cart.push(newItem);
-          alert(alertMessage);
-        }
-
-        localStorage.setItem('cart', JSON.stringify(cart));
-        dispatchCartUpdateEvent();
-      } catch (error) {
-        console.error('Failed to parse cart from local storage or save item:', error);
-        alert('Error adding item to cart. Please try again.');
-        if (book) {
-          localStorage.setItem('cart', JSON.stringify([{ id: book.id, quantity: quantity }]));
-          dispatchCartUpdateEvent();
-        } else {
-          console.error('Cannot add item to cart because book details are missing.');
-          alert('Error adding item to cart. Book details unavailable.');
-        }
-      }
+    if (existingItemIndex > -1) {
+      // Update quantity if item exists
+      cartItems[existingItemIndex].quantity += quantity;
+    } else {
+      // Add new item if it doesn't exist
+      cartItems.push({
+        id: book.id,
+        quantity: quantity
+      });
     }
+
+    // Save updated cart to localStorage
+    localStorage.setItem('cart', JSON.stringify(cartItems));
+
+    // Update cart display in navbar (dispatch event to update cart count)
+    dispatchCartUpdateEvent();
+
+    // Alert user that item was added
+    alert(`Added ${book.book_title} (Quantity: ${quantity}) to your cart.`);
   };
 
   // New function to handle rating filter clicks
@@ -188,6 +163,17 @@ const BookDetails = () => {
   if (!book) {
     return <div className="text-center py-20">Book not found</div>;
   }
+
+  // Get current book stats safely
+  const currentBookStats = bookStats?.items?.[0] || {
+    review_count: 0,
+    avg_rating: 0,
+    star_5: 0,
+    star_4: 0,
+    star_3: 0,
+    star_2: 0,
+    star_1: 0
+  };
 
   return (
     <div>
@@ -232,40 +218,44 @@ const BookDetails = () => {
         </div>
 
         {/* PURCHASE BOX */}
-        <div className="w-full lg:w-[30%] border-2 border-gray-400 rounded-lg flex flex-col relative mt-4 lg:mt-0 lg:h-fit">
-          {/* PRICE DISPLAY */}
-          <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-200 rounded-t-lg">
-            <span className={book.discount_price ? "text-md line-through" : "text-2xl text-black font-bold break-words"}>
-              ${book.book_price}
-            </span>
-            {book.discount_price && (
-              <span className="text-2xl text-black font-bold break-words">
-                ${book.discount_price}
-              </span>
+        <div className="w-full lg:w-[30%] h-fit border-2 border-gray-400 rounded-lg p-4">
+          <div className="font-bold text-3xl mb-6 text-center">
+            {book.discount_price !== null ? (
+              <div className="flex items-left gap-3 border-b border-gray-400 -mx-4 pb-4 pl-4">
+                <div className='flex items-center gap-3'>
+                  <span className="text-lg line-through text-gray-500">${book.book_price.toFixed(2)}</span>
+                  <span>${book.discount_price.toFixed(2)}</span>
+                </div>
+
+              </div>
+            ) : (
+              <div className="flex items-left gap-3 border-b border-gray-400 -mx-4 pb-4 pl-4">
+                <div className='flex items-center gap-3'>
+                   <span>${book.book_price.toFixed(2)}</span>
+                </div>
+              </div>
+
             )}
           </div>
 
-          {/* QUANTITY SELECTOR */}
-          <div className='flex flex-col gap-4 p-4'>
-            <div className=''>
-              <label className="block mb-2">Quantity</label>
-              <QuantitySelector
-                quantity={quantity}
-                onDecrement={decrementQuantity}
-                onIncrement={incrementQuantity}
-              />
-            </div>
-            <Button
-              className="w-full"
-              onClick={handleAddToCart}
-            >
-              Add to cart
-            </Button>
+          <div className='text-left text-gray-500'>
+            Quantity
           </div>
+          <div className="mb-8">
+            <QuantitySelector
+              quantity={quantity}
+              onIncrement={() => setQuantity(q => q + 1)}
+              onDecrement={() => setQuantity(q => (q > 1 ? q - 1 : 1))}
+              readOnly={false}
+            />
+          </div>
+
+          <Button className="w-full py-6" onClick={handleAddToCart}>
+            Add to Cart
+          </Button>
         </div>
       </div>
 
-      {/* REVIEWS SECTION */}
       <div className="flex flex-col lg:flex-row gap-4 lg:justify-between pt-4">
         {/* REVIEWS LIST */}
         <div className="w-full lg:w-[68%] border-2 border-gray-400 rounded-lg">
@@ -276,56 +266,50 @@ const BookDetails = () => {
 
             {/* RATING SUMMARY */}
             <div className='font-bold text-4xl flex items-center gap-2'>
-              {bookStats && bookStats.items && bookStats.items.length > 0 ? (
-                  <div>{bookStats.items[0].avg_rating} Star</div>
-              ) : (
-                <span>Loading ratings...</span>
-              )}
+              <div>{currentBookStats.avg_rating.toFixed(1)} Star</div>
             </div>
 
             {/* RATING DISTRIBUTION */}
-            {bookStats && bookStats.items && bookStats.items.length > 0 && (
-              <div>
-                <div className="flex flex-row divide-x divide-gray-300">
-                  <div
-                    className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === null ? 'font-bold underline' : ''}`}
-                    onClick={() => handleRatingFilterClick(null)}
-                  >
-                    All ({bookStats.items[0].review_count})
-                  </div>
-                  <div
-                    className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 5 ? 'font-bold underline' : ''}`}
-                    onClick={() => handleRatingFilterClick(5)}
-                  >
-                    5 Star ({bookStats.items[0].star_5})
-                  </div>
-                  <div
-                    className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 4 ? 'font-bold underline' : ''}`}
-                    onClick={() => handleRatingFilterClick(4)}
-                  >
-                    4 Star ({bookStats.items[0].star_4})
-                  </div>
-                  <div
-                    className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 3 ? 'font-bold underline' : ''}`}
-                    onClick={() => handleRatingFilterClick(3)}
-                  >
-                    3 Star ({bookStats.items[0].star_3})
-                  </div>
-                  <div
-                    className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 2 ? 'font-bold underline' : ''}`}
-                    onClick={() => handleRatingFilterClick(2)}
-                  >
-                    2 Star ({bookStats.items[0].star_2})
-                  </div>
-                  <div
-                    className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 1 ? 'font-bold underline' : ''}`}
-                    onClick={() => handleRatingFilterClick(1)}
-                  >
-                    1 Star ({bookStats.items[0].star_1})
-                  </div>
+            <div>
+              <div className="flex flex-row divide-x divide-gray-300">
+                <div
+                  className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === null ? 'font-bold underline' : ''}`}
+                  onClick={() => handleRatingFilterClick(null)}
+                >
+                  All ({currentBookStats.review_count})
+                </div>
+                <div
+                  className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 5 ? 'font-bold underline' : ''}`}
+                  onClick={() => handleRatingFilterClick(5)}
+                >
+                  5 Star ({currentBookStats.star_5})
+                </div>
+                <div
+                  className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 4 ? 'font-bold underline' : ''}`}
+                  onClick={() => handleRatingFilterClick(4)}
+                >
+                  4 Star ({currentBookStats.star_4})
+                </div>
+                <div
+                  className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 3 ? 'font-bold underline' : ''}`}
+                  onClick={() => handleRatingFilterClick(3)}
+                >
+                  3 Star ({currentBookStats.star_3})
+                </div>
+                <div
+                  className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 2 ? 'font-bold underline' : ''}`}
+                  onClick={() => handleRatingFilterClick(2)}
+                >
+                  2 Star ({currentBookStats.star_2})
+                </div>
+                <div
+                  className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 1 ? 'font-bold underline' : ''}`}
+                  onClick={() => handleRatingFilterClick(1)}
+                >
+                  1 Star ({currentBookStats.star_1})
                 </div>
               </div>
-            )}
+            </div>
 
             {/* REVIEW ITEMS */}
             <div className="mt-4">

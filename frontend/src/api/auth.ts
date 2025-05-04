@@ -20,11 +20,11 @@ export interface RefreshTokenResponse {
 }
 
 export function login(payload: LoginPayload) {
-    return api.post<LoginResponse>("api/user/login", payload)
+    return api.post<LoginResponse>("/api/user/login", payload)
         .then(res => res.data);
 }
 
 export function refreshToken(refreshToken: string) {
-    return api.post<RefreshTokenResponse>("api/user/refresh-token", { refresh_token: refreshToken })
+    return api.post<RefreshTokenResponse>("/api/user/refresh-token", { refresh_token: refreshToken })
         .then(res => res.data);
 }

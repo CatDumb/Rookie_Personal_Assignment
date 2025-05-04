@@ -84,12 +84,8 @@ async def list_books(
                 query = query.filter(Book.category_id.in_(parsed_category_ids))
             except ValueError:
                 pass
-        elif filters.category_ids and len(filters.category_ids) > 0:
-            # Apply category filter from array
+        elif filters.category_ids:  # Handles empty list, single ID, or multiple IDs
             query = query.filter(Book.category_id.in_(filters.category_ids))
-        elif filters.category_id is not None:
-            # Apply single category filter
-            query = query.filter(Book.category_id == filters.category_id)
 
         parsed_author_ids = []
         if filters.author_ids_csv:
@@ -103,12 +99,8 @@ async def list_books(
                 query = query.filter(Book.author_id.in_(parsed_author_ids))
             except ValueError:
                 pass
-        elif filters.author_ids and len(filters.author_ids) > 0:
-            # Apply author filter from array
+        elif filters.author_ids:  # Handles empty list, single ID, or multiple IDs
             query = query.filter(Book.author_id.in_(filters.author_ids))
-        elif filters.author_id is not None:
-            # Apply single author filter
-            query = query.filter(Book.author_id == filters.author_id)
 
         if filters.rating_min is not None:
             query = query.filter(BookStats.avg_rating >= filters.rating_min)
@@ -121,7 +113,7 @@ async def list_books(
         elif filters.sort_by == "popularity":
             query = query.order_by(
                 func.coalesce(BookStats.review_count, 0).desc(),
-                Book.book_title.asc(),
+                BookStats.lowest_price.asc(),
             )
         elif filters.sort_by == "price_asc":
             query = query.order_by(
@@ -351,7 +343,7 @@ async def get_popular_books(db: Session = Depends(get_db)):
             )
             .order_by(
                 func.coalesce(BookStats.review_count, 0).desc(),
-                Book.book_title.asc(),
+                BookStats.lowest_price.asc(),
             )
             .limit(8)
             .all()

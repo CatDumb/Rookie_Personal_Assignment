@@ -7,7 +7,7 @@ export interface Category {
 }
 
 export function getCategories() {
-  return api.get<Category[]>("api/category/")
+  return api.get<Category[]>("/api/category/")
     .then(res => {
       if (res.data && Array.isArray(res.data)) {
         return res.data;

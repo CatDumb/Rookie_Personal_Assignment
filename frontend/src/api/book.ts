@@ -49,39 +49,56 @@ export interface PopularResponse extends BaseBook {
 
 // From original book.ts
 export function getBookDetails(bookId: number) {
-  return api.get<BookDetailResponse>(`api/book/${bookId}`)
+  console.log(`Fetching book details for ID: ${bookId}`);
+  // Ensure we use /api prefix for proper proxying
+  return api.get<BookDetailResponse>(`/api/book/${bookId}`)
     .then(res => {
-      // Ensure book_cover_photo is never null
-      if (res.data && res.data.book) {
-        console.log('Book details - Cover photo before:', res.data.book.book_cover_photo);
+      console.log('Book details API response:', res.data);
 
-        // Set a fallback for book_cover_photo
-        res.data.book.book_cover_photo = res.data.book.book_cover_photo || "/book.png";
-
-        // For backward compatibility with components that use the old field names
-        // Add legacy field names to the book object as the codebase transitions
-        const bookWithLegacyFields = res.data.book as BookDetail & {
-          cover_photo: string;
-          price: number;
-          average_rating: number;
-          summary: string;
-        };
-
-        // Set compatibility fields for components still using old names
-        bookWithLegacyFields.cover_photo = res.data.book.book_cover_photo;
-        bookWithLegacyFields.price = res.data.book.book_price;
-        bookWithLegacyFields.average_rating = res.data.book.avg_rating;
-        bookWithLegacyFields.summary = res.data.book.book_summary;
-
-        console.log('Book details - Cover photo after:', res.data.book.book_cover_photo);
+      // Check if we have a valid response
+      if (!res.data) {
+        console.error('Empty response from book details API');
+        throw new Error('No data received from server');
       }
+
+      // Check if book property exists in the response
+      if (!res.data.book) {
+        console.error('Book property missing in API response:', res.data);
+        throw new Error('Book data not found in response');
+      }
+
+      // Ensure book_cover_photo is never null
+      res.data.book.book_cover_photo = res.data.book.book_cover_photo || "/book.png";
+      console.log('Book details - Cover photo after processing:', res.data.book.book_cover_photo);
+
+      // For backward compatibility with components that use the old field names
+      // Add legacy field names to the book object as the codebase transitions
+      const bookWithLegacyFields = res.data.book as BookDetail & {
+        cover_photo: string;
+        price: number;
+        average_rating: number;
+        summary: string;
+        name?: string; // Add name field for compatibility
+      };
+
+      // Set compatibility fields for components still using old names
+      bookWithLegacyFields.cover_photo = res.data.book.book_cover_photo;
+      bookWithLegacyFields.price = res.data.book.book_price;
+      bookWithLegacyFields.average_rating = res.data.book.avg_rating;
+      bookWithLegacyFields.summary = res.data.book.book_summary;
+      bookWithLegacyFields.name = res.data.book.book_title; // Add name field for compatibility
+
       return res.data;
+    })
+    .catch(error => {
+      console.error('Error fetching book details:', error);
+      throw error;
     });
 }
 
 // From onsale.ts
 export function getOnSale() {
-  return api.get<OnSaleResponse>("api/book/on_sale")
+  return api.get<OnSaleResponse>("/api/book/on_sale")
     .then(res => {
       if (res.data && res.data.items && Array.isArray(res.data.items)) {
         return res.data.items.map(item => ({
@@ -101,7 +118,7 @@ export function getOnSale() {
 
 // From recommend.ts
 export function getRecommendations() {
-  return api.get<{ items: RecommendResponse[] }>("api/book/featured/recommended")
+  return api.get<{ items: RecommendResponse[] }>("/api/book/featured/recommended")
     .then(res => {
       if (res.data && res.data.items && Array.isArray(res.data.items)) {
         return res.data.items.map(item => ({
@@ -122,7 +139,7 @@ export function getRecommendations() {
 
 // From recommend.ts
 export function getPopular() {
-  return api.get<{ items: PopularResponse[] }>("api/book/featured/popular")
+  return api.get<{ items: PopularResponse[] }>("/api/book/featured/popular")
     .then(res => {
       if (res.data && res.data.items && Array.isArray(res.data.items)) {
         return res.data.items.map(item => ({

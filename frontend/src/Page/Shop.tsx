@@ -14,6 +14,8 @@ import {
 import { BookCard } from "@/components/ui/card";
 // Import the ShopPagination component
 import ShopPagination from "@/components/Pagination/ShopPagination";
+import { getCategories, Category } from "@/api/category";
+import { getAuthors, Author } from "@/api/author";
 
 const ShopPage = () => {
   // --- STATE DEFINITIONS ---
@@ -36,6 +38,39 @@ const ShopPage = () => {
 
   // Add a state variable for total books count
   const [totalBooks, setTotalBooks] = useState(0);
+
+  // Add state for category and author names
+  const [categoryMap, setCategoryMap] = useState<Map<number, string>>(new Map());
+  const [authorMap, setAuthorMap] = useState<Map<number, string>>(new Map());
+
+  // Load categories and authors
+  useEffect(() => {
+    // Fetch categories
+    getCategories()
+      .then((categories: Category[]) => {
+        const newCategoryMap = new Map<number, string>();
+        categories.forEach(category => {
+          newCategoryMap.set(category.id, category.category_name);
+        });
+        setCategoryMap(newCategoryMap);
+      })
+      .catch(error => {
+        console.error("Failed to load categories:", error);
+      });
+
+    // Fetch authors
+    getAuthors()
+      .then((authors: Author[]) => {
+        const newAuthorMap = new Map<number, string>();
+        authors.forEach(author => {
+          newAuthorMap.set(author.id, author.author_name);
+        });
+        setAuthorMap(newAuthorMap);
+      })
+      .catch(error => {
+        console.error("Failed to load authors:", error);
+      });
+  }, []);
 
   // --- DATA FETCH FUNCTION ---
   const fetchBooks = useCallback(async () => {
@@ -106,7 +141,11 @@ const ShopPage = () => {
   return (
     <div>
       {/* --- HEADER SECTION --- */}
-      <ShopHeader activeFilters={activeFilters} />
+      <ShopHeader
+        activeFilters={activeFilters}
+        categoryNames={categoryMap}
+        authorNames={authorMap}
+      />
       <div className="flex flex-col md:flex-row gap-4 py-4">
         {/* --- FILTERS SECTION --- */}
         <div className="w-full md:w-[15%] md:min-w-[15%] md:max-w-[15%] flex-shrink-0">
