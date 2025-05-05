@@ -66,24 +66,25 @@ const CarouselBar = () => {
     /* Carousel Component Rendering */
     return (
         <div className="flex flex-col items-center justify-center w-full">
-            <div className="border-2 border-gray-400 rounded-lg py-5 px-10 w-full">
-                <div className="relative px-8">
+            <div className="border-2 border-gray-400 rounded-lg py-5 px-4 md:px-8 w-full">
+                <div className="relative">
                     <Carousel
                         opts={{
                             align: "start",
                             loop: validBooks.length > 1,
-                            dragFree: true
+                            containScroll: "trimSnaps",
+                            skipSnaps: false
                         }}
-                        className="w-full"
+                        className="w-full mx-auto"
                     >
                         {/* Carousel Items - Book Cards */}
-                        <CarouselContent className="gap-4 px-4">
+                        <CarouselContent>
                             {validBooks.map((book) => (
                                 <CarouselItem
                                     key={book.id}
-                                    className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 pr-4"
+                                    className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 px-2"
                                 >
-                                    <div className="flex items-center justify-center">
+                                    <div className="p-1 h-full">
                                         <BookCard
                                             id={book.id}
                                             title={book.book_title}
@@ -91,6 +92,7 @@ const CarouselBar = () => {
                                             price={book.book_price}
                                             originalPrice={book.discount_price ?? undefined}
                                             imageUrl={book.book_cover_photo ?? ""}
+                                            className="h-full"
                                         />
                                     </div>
                                 </CarouselItem>
@@ -99,8 +101,8 @@ const CarouselBar = () => {
                         {/* Navigation Controls - Only shown when multiple items exist */}
                         {validBooks.length > 1 && (
                             <>
-                                <CarouselPrevious className="-left-8 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
-                                <CarouselNext className="-right-8 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
+                                <CarouselPrevious className="hidden md:flex -left-4 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
+                                <CarouselNext className="hidden md:flex -right-4 bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:text-gray-900" />
                             </>
                         )}
                     </Carousel>
