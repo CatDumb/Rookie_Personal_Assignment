@@ -320,8 +320,14 @@ const BookDetails = () => {
         {/* Reviews List Panel */}
         <div className="w-full lg:w-[68%] border-2 border-gray-400 rounded-lg">
           <div className='flex flex-col gap-4 px-4 py-8'>
-            <div className='font-bold text-xl'>
-              Customer Reviews
+            <div className='flex flex-row gap-2 items-baseline'>
+              <div className='font-bold text-xl'>
+                Customer Reviews
+              </div>
+
+              <div className='text-gray-500 text-sm'>
+                (Filter by rating: {activeRatingFilter ? `${activeRatingFilter} Star` : 'All'})
+              </div>
             </div>
 
             {/* Average Rating Display */}
