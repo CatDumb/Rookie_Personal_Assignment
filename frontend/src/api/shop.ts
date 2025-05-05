@@ -12,11 +12,13 @@ export interface ShopParams {
   categories?: number[];
   authors?: number[];
   ratings?: number[];
-  sort?: SortOption;
+  sort?: SortOptionShop | SortOptionReview;
 }
 
 // Sort options for the shop
-export type SortOption = 'onsale' | 'popularity' | 'price-asc' | 'price-desc';
+export type SortOptionShop = 'onsale' | 'popularity' | 'price-asc' | 'price-desc';
+
+export type SortOptionReview = 'newest' | 'oldest';
 
 // Interface for the response from the books API
 export interface ShopBooksResponse {

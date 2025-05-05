@@ -1,11 +1,11 @@
 import { ShopHeader } from "@/components/Header/ShopHeader";
 import { BookFilters, FilterState } from "@/components/ui/filter";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 // Import shop API functions and types
 import {
   getShopBooks,
   ShopParams,
-  SortOption,
+  SortOptionShop,
   VALID_PER_PAGE_OPTIONS,
   ValidPerPage,
   BookViewModel,
@@ -16,6 +16,7 @@ import { BookCard } from "@/components/ui/card";
 import ShopPagination from "@/components/Pagination/ShopPagination";
 import { getCategories, Category } from "@/api/category";
 import { getAuthors, Author } from "@/api/author";
+import { Dropdown, DropdownOption } from "@/components/ui/dropdown";
 
 const ShopPage = () => {
   /* State Management */
@@ -38,34 +39,11 @@ const ShopPage = () => {
   const [totalBooks, setTotalBooks] = useState(0);
 
   // Sort state
-  const [sortOption, setSortOption] = useState<SortOption>('onsale');
-
-  // UI state for dropdown menus
-  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
-  const [perPageDropdownOpen, setPerPageDropdownOpen] = useState(false);
-  const sortDropdownRef = useRef<HTMLDivElement>(null);
-  const perPageDropdownRef = useRef<HTMLDivElement>(null);
+  const [sortOption, setSortOption] = useState<SortOptionShop>('onsale');
 
   // Mapping collections for display
   const [categoryMap, setCategoryMap] = useState<Map<number, string>>(new Map());
   const [authorMap, setAuthorMap] = useState<Map<number, string>>(new Map());
-
-  /* Event listeners for dropdown UI interaction */
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
-        setSortDropdownOpen(false);
-      }
-      if (perPageDropdownRef.current && !perPageDropdownRef.current.contains(event.target as Node)) {
-        setPerPageDropdownOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   /* Load category and author data for filtering */
   useEffect(() => {
@@ -149,11 +127,10 @@ const ShopPage = () => {
   };
 
   // Handle sort option changes
-  const handleSortChange = (value: SortOption) => {
+  const handleSortChange = (value: SortOptionShop) => {
     // Reset to first page when sort changes
     setCurrentPage(1);
     setSortOption(value);
-    setSortDropdownOpen(false);
   };
 
   // Handle items per page changes
@@ -161,12 +138,11 @@ const ShopPage = () => {
     // Reset to first page when per-page setting changes
     setCurrentPage(1);
     setItemsPerPage(value);
-    setPerPageDropdownOpen(false);
   };
 
   /* Helper Functions */
   // Get display text for sort options
-  const getSortOptionText = (option: SortOption): string => {
+  const getSortOptionText = (option: SortOptionShop): string => {
     switch (option) {
       case 'onsale': return 'On Sale';
       case 'popularity': return 'Popularity';
@@ -175,6 +151,20 @@ const ShopPage = () => {
       default: return 'On Sale';
     }
   };
+
+  // Create dropdown options for items per page
+  const perPageOptions: DropdownOption<ValidPerPage>[] = VALID_PER_PAGE_OPTIONS.map(option => ({
+    value: option,
+    label: `${option} per page`
+  }));
+
+  // Create dropdown options for sort
+  const sortOptions: DropdownOption<SortOptionShop>[] = [
+    { value: 'onsale', label: 'On Sale' },
+    { value: 'popularity', label: 'Popularity' },
+    { value: 'price-asc', label: 'Price: Low to High' },
+    { value: 'price-desc', label: 'Price: High to Low' }
+  ];
 
   /* Component Rendering */
   return (
@@ -215,95 +205,19 @@ const ShopPage = () => {
                 {/* Sort and Pagination Controls */}
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   {/* Items per page dropdown */}
-                  <div className="relative" ref={perPageDropdownRef}>
-                    <button
-                      className="flex items-center justify-between w-full sm:w-auto px-3 py-2 border border-gray-300 rounded hover:bg-gray-100"
-                      onClick={() => setPerPageDropdownOpen(!perPageDropdownOpen)}
-                    >
-                      <span className="mr-1">{itemsPerPage} per page</span>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className={`transition-transform duration-200 ${perPageDropdownOpen ? 'rotate-180' : ''}`}
-                      >
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
-                    </button>
-
-                    {perPageDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
-                        {VALID_PER_PAGE_OPTIONS.map(option => (
-                          <button
-                            key={option}
-                            onClick={() => handlePerPageChange(option)}
-                            className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                          >
-                            {option} per page
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <Dropdown<ValidPerPage>
+                    value={itemsPerPage}
+                    options={perPageOptions}
+                    onChange={handlePerPageChange}
+                  />
 
                   {/* Sort options dropdown */}
-                  <div className="relative" ref={sortDropdownRef}>
-                    <button
-                      className="flex items-center justify-between w-full sm:w-auto px-3 py-2 border border-gray-300 rounded hover:bg-gray-100"
-                      onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-                    >
-                      <span className="mr-1">{getSortOptionText(sortOption)}</span>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className={`transition-transform duration-200 ${sortDropdownOpen ? 'rotate-180' : ''}`}
-                      >
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
-                    </button>
-
-                    {sortDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
-                        <button
-                          onClick={() => handleSortChange('onsale')}
-                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        >
-                          On Sale
-                        </button>
-                        <button
-                          onClick={() => handleSortChange('popularity')}
-                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        >
-                          Popularity
-                        </button>
-                        <button
-                          onClick={() => handleSortChange('price-asc')}
-                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        >
-                          Price: Low to High
-                        </button>
-                        <button
-                          onClick={() => handleSortChange('price-desc')}
-                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        >
-                          Price: High to Low
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <Dropdown<SortOptionShop>
+                    value={sortOption}
+                    options={sortOptions}
+                    onChange={handleSortChange}
+                    buttonLabel={getSortOptionText}
+                  />
                 </div>
               </div>
             </div>
