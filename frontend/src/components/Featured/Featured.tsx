@@ -12,44 +12,33 @@ function Featured() {
   const [popularLoading, setPopularLoading] = useState(false);
   const [recommendedError, setRecommendedError] = useState("");
   const [popularError, setPopularError] = useState("");
-  const [activeTab, setActiveTab] = useState("recommended");
 
-  /* Fetch Recommended Books on Component Mount */
+  /* Fetch Both Recommended and Popular Books on Component Mount */
   useEffect(() => {
+    // Load Recommended Books
     setRecommendedLoading(true);
     setRecommendedError("");
 
-    getRecommendations()
-      .then((books) => {
-        // Make sure the books array has all required fields
-        setRecommendedBooks(books);
+    // Load Popular Books
+    setPopularLoading(true);
+    setPopularError("");
+
+    // Fetch both data sets simultaneously
+    Promise.all([getRecommendations(), getPopular()])
+      .then(([recommendedData, popularData]) => {
+        setRecommendedBooks(recommendedData);
+        setPopularBooks(popularData);
         setRecommendedLoading(false);
+        setPopularLoading(false);
       })
-      .catch((error) => {
-        console.error("Error fetching recommendations:", error);
+      .catch(error => {
+        console.error("Error fetching book data:", error);
         setRecommendedError("Failed to fetch recommendations");
+        setPopularError("Failed to fetch popular books");
         setRecommendedLoading(false);
+        setPopularLoading(false);
       });
   }, []);
-
-  /* Fetch Popular Books When Tab Selected (Lazy Loading) */
-  useEffect(() => {
-    if (activeTab === "popular" && popularBooks.length === 0) {
-      setPopularLoading(true);
-      setPopularError("");
-
-      getPopular()
-        .then((books) => {
-          setPopularBooks(books);
-          setPopularLoading(false);
-        })
-        .catch((error) => {
-          console.error("Error fetching popular books:", error);
-          setPopularError("Failed to fetch popular books");
-          setPopularLoading(false);
-        });
-    }
-  }, [activeTab, popularBooks.length]);
 
   return (
     <div className="flex flex-col gap-4 py-4 justify-center">
@@ -62,7 +51,6 @@ function Featured() {
       <Tabs
         defaultValue="recommended"
         className="w-full"
-        onValueChange={(value) => setActiveTab(value)}
       >
         {/* Tab Navigation */}
         <div className="flex justify-center">
