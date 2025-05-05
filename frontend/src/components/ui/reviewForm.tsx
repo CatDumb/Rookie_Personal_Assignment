@@ -1,7 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { ChevronUp, ChevronDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -127,22 +126,18 @@ export function ReviewForm({ book_id }: ReviewFormProps) {
                 <FormControl>
                   <div className="flex items-center">
                     <div className="relative w-full">
-                      <Input
-                        type="text"
-                        className="w-full pr-16"
-                        value={field.value ? `${field.value} stars` : ""}
-                        readOnly
-                      />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col">
-                        <ChevronUp
-                          className="h-4 w-4 cursor-pointer hover:text-primary"
-                          onClick={() => handleRatingChange(field.value + 1)}
-                        />
-                        <ChevronDown
-                          className="h-4 w-4 cursor-pointer hover:text-primary"
-                          onClick={() => handleRatingChange(field.value - 1)}
-                        />
-                      </div>
+                      <select
+                        className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        value={field.value}
+                        onChange={(e) => handleRatingChange(parseInt(e.target.value, 10))}
+                      >
+                        <option value="0" disabled>Select Rating</option>
+                        <option value="1">1 Star</option>
+                        <option value="2">2 Stars</option>
+                        <option value="3">3 Stars</option>
+                        <option value="4">4 Stars</option>
+                        <option value="5">5 Stars</option>
+                      </select>
                     </div>
                   </div>
                 </FormControl>
