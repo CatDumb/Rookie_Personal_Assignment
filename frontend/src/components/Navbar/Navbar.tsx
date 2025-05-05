@@ -6,6 +6,15 @@ import { useAuth } from '../Context/AuthContext';
 import { useCart } from '../Context/CartContext';
 import { LoginPayload } from '../../api/auth';
 
+// Define the event name for opening the login dialog
+export const LOGIN_DIALOG_EVENT = "open-login-dialog";
+
+// Event dispatcher function that can be imported and used by other components
+export function openLoginDialog() {
+  const event = new CustomEvent(LOGIN_DIALOG_EVENT);
+  document.dispatchEvent(event);
+}
+
 function Navbar() {
   /* Context Hooks and State */
   const { isLoggedIn, firstName, lastName, login, logout, error: authError } = useAuth();
@@ -19,6 +28,18 @@ function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLLIElement>(null);
+
+  /* Event listener for the custom login dialog event */
+  useEffect(() => {
+    function handleLoginDialogEvent() {
+      setIsDialogOpen(true);
+    }
+
+    document.addEventListener(LOGIN_DIALOG_EVENT, handleLoginDialogEvent);
+    return () => {
+      document.removeEventListener(LOGIN_DIALOG_EVENT, handleLoginDialogEvent);
+    };
+  }, []);
 
   /* UI Event Handlers */
   const handleMenuClick = () => setIsMenuOpen(!isMenuOpen);
@@ -50,11 +71,7 @@ function Navbar() {
 
   /* Cart Navigation Handler */
   const handleCartClick = () => {
-    if (isLoggedIn) {
-      navigate('/cart');
-    } else {
-      setIsDialogOpen(true);
-    }
+    navigate('/cart');
     closeMobileMenu();
   };
 

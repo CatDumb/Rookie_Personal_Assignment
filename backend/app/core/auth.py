@@ -86,6 +86,7 @@ def get_user(db: Session, email: str) -> UserInDB | None:
     user = db.query(UserModel).filter(UserModel.email == email).first()
     if user:
         return UserInDB(
+            id=user.id,
             email=user.email,
             first_name=user.first_name,
             last_name=user.last_name,
@@ -110,6 +111,7 @@ def get_public_user(db: Session, email: str) -> UserInfoReturn | None:
     user_in_db = get_user(db, email)
     if user_in_db:
         return UserInfoReturn(
+            id=user_in_db.id,
             email=user_in_db.email,
             first_name=user_in_db.first_name,
             last_name=user_in_db.last_name,
@@ -155,6 +157,7 @@ def create_access_token(
 
     Notes:
         Explicitly adds a 'sub' (subject) claim to identify the user.
+        Also includes user_id for convenience in client applications.
     """
     # Convert the public user data to a dictionary if it's not already one
     if hasattr(data, "model_dump"):
@@ -165,6 +168,10 @@ def create_access_token(
     # Add subject claim explicitly with the user email as unique identifier
     if "sub" not in to_encode:
         to_encode["sub"] = to_encode.get("email")
+
+    # Make sure user_id is included in the token
+    if "id" in to_encode and "user_id" not in to_encode:
+        to_encode["user_id"] = to_encode["id"]
 
     if expires_delta:
         expire = datetime.utcnow() + expires_delta

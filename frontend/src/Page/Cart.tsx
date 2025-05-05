@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/client";
 import { dispatchCartUpdateEvent } from "../components/Context/CartContext";
 import { getBookDetails, BookDetailResponse } from "../api/book";
+import { openLoginDialog } from '@/components/Navbar/Navbar';
 
 /* Type definitions */
 interface UserDetails {
@@ -24,6 +25,19 @@ interface InvalidBookData {
   id: number;
   name: string;
   reason: string;
+}
+
+// Define API error response types
+interface ApiErrorDetail {
+  type: string;
+  loc: string[];
+  msg: string;
+  input?: Record<string, unknown>;
+}
+
+interface ApiErrorResponse {
+  detail?: ApiErrorDetail[];
+  [key: string]: unknown;
 }
 
 /* Main Cart Page Component */
@@ -142,6 +156,8 @@ export default function CartPage() {
         /* Check if user is logged in */
         if (!isLoggedIn) {
             alert("Please log in to place an order");
+            // Open the login dialog after showing the alert
+            openLoginDialog();
             return;
         }
 
@@ -165,9 +181,21 @@ export default function CartPage() {
             }
 
             /* Get the current user's details from the profile endpoint */
-            const response = await api.get<UserDetails>('/api/user/profile');
-            const userId = response.data.id;
-            console.log("Got user ID:", userId);
+            let userId: number;
+
+            try {
+                const response = await api.get<UserDetails>('/api/user/profile');
+                if (!response.data || !response.data.id) {
+                    throw new Error('User profile data is incomplete');
+                }
+                userId = response.data.id;
+                console.log("Got user ID:", userId);
+            } catch (profileError) {
+                console.error("Failed to get user profile:", profileError);
+                setOrderError("Failed to retrieve your account information. Please try logging in again.");
+                setIsPlacingOrder(false);
+                return;
+            }
 
             /* Prepare order data with user_id */
             const orderData = {
@@ -200,9 +228,32 @@ export default function CartPage() {
             /* Show success message via state */
             setShowSuccessNotification(true);
 
-        } catch (err) {
+        } catch (err: unknown) {
             console.error("Failed to place order:", err);
-            setOrderError("Failed to place order. Please try again.");
+
+            // Get more detailed error message if available
+            let errorMessage = "Failed to place order. Please try again.";
+
+            if (err && typeof err === 'object' && 'response' in err &&
+                err.response && typeof err.response === 'object' &&
+                'data' in err.response) {
+                const errorData = err.response.data as ApiErrorResponse;
+
+                // Check for specific error types
+                if (errorData.detail && Array.isArray(errorData.detail)) {
+                    const userIdError = errorData.detail.find(
+                        (error: ApiErrorDetail) => error.loc && error.loc.includes('user_id')
+                    );
+
+                    if (userIdError) {
+                        errorMessage = "Your user account information couldn't be verified. Please try logging in again.";
+                        // Optionally open login dialog here too
+                        openLoginDialog();
+                    }
+                }
+            }
+
+            setOrderError(errorMessage);
         } finally {
             setIsPlacingOrder(false);
         }

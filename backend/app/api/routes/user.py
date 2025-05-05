@@ -78,6 +78,7 @@ async def register_user(request: RegisterUserRequest, db: Session = Depends(get_
 
         # Create a public user model for the token data
         user_data = UserInfoReturn(
+            id=new_user.id,
             email=new_user.email,
             first_name=new_user.first_name,
             last_name=new_user.last_name,
@@ -141,6 +142,7 @@ async def login_user(request: LoginUserRequest, db: Session = Depends(get_db)):
             )
 
         user_data = UserInfoReturn(
+            id=user.id,
             email=user.email,
             first_name=user.first_name,
             last_name=user.last_name,
@@ -214,6 +216,7 @@ async def refresh_access_token(
 
         # Create new user data model
         user_data = UserInfoReturn(
+            id=user.id,
             email=user.email,
             first_name=user.first_name,
             last_name=user.last_name,

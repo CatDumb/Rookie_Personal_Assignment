@@ -8,7 +8,6 @@ import { ReviewItem } from '../components/ui/reviewItem';
 import { QuantitySelector } from '@/components/ui/quantitySelector';
 import { dispatchCartUpdateEvent } from '@/components/Context/CartContext';
 import { useBookDetails } from '@/hooks/useBookDetails';
-import { useAuth } from '../components/Context/AuthContext';
 
 import {
   Pagination,
@@ -43,7 +42,6 @@ const BookDetails = () => {
   /* Book data state */
   const { book, loading: bookLoading, error: bookError } = useBookDetails(numericId);
   const [quantity, setQuantity] = useState(1);
-  const { isLoggedIn } = useAuth();
 
   /* Reviews state */
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -152,11 +150,6 @@ const BookDetails = () => {
   /* Add to cart functionality */
   const handleAddToCart = () => {
     if (!book) {
-      return;
-    }
-
-    if (!isLoggedIn) {
-      alert('Please log in to add items to your cart.');
       return;
     }
 

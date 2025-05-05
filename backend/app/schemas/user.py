@@ -18,12 +18,14 @@ class UserBase(BaseModel):
     Contains the essential fields that represent a user account.
 
     Attributes:
+        id: User's unique identifier
         email: User's email address (used as unique identifier)
         first_name: Optional first name
         last_name: Optional last name
         admin: Whether the user has administrative privileges
     """
 
+    id: Optional[int] = None
     email: EmailStr
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -78,9 +80,7 @@ class UserInfoReturn(UserBase):
     in JWT tokens and API responses.
     """
 
-    # Inherits fields from UserBase
-    # Might add id here if needed in some contexts
-    # id: int
+    # Inherits fields from UserBase including id
     class Config:
         from_attributes = True
 
