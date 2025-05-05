@@ -1,7 +1,7 @@
 /* Cart Details Hook - Manages shopping cart data with detailed product information */
 import { useState, useEffect, useCallback } from 'react';
 import { getBookDetails, BookDetail } from '../api/book';
-import { dispatchCartUpdateEvent } from '../components/Context/CartContext'; // Import dispatch helper
+import { dispatchCartUpdateEvent } from './useCartEvents'; // Updated import path
 
 /* Type Definitions */
 // Interface for the basic cart item stored in localStorage

@@ -1,8 +1,8 @@
 /* Authentication Context - Manages user authentication state and token handling */
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useState, useEffect, ReactNode } from 'react';
 import { login, LoginPayload, refreshToken } from '../../api/auth';
 import { jwtDecode } from 'jwt-decode';
-import { dispatchCartUpdateEvent } from './CartContext';
+import { dispatchCartUpdateEvent } from '../../hooks/useCartEvents';
 
 /* Type Definitions */
 interface JwtPayload {
@@ -26,16 +26,7 @@ interface AuthContextType {
 }
 
 /* Context Creation */
-const AuthContext = createContext<AuthContextType | null>(null);
-
-/* Custom Hook for Using Auth Context */
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 interface AuthProviderProps {
   children: ReactNode;

@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { ReviewForm } from '../components/ui/reviewForm';
 import { ReviewItem } from '../components/ui/reviewItem';
 import { QuantitySelector } from '@/components/ui/quantitySelector';
-import { dispatchCartUpdateEvent } from '@/components/Context/CartContext';
+import { dispatchCartUpdateEvent } from '@/hooks/useCartEvents';
 import { useBookDetails } from '@/hooks/useBookDetails';
 
 import {
@@ -297,9 +297,15 @@ const BookDetails = () => {
           <div className="mb-8">
             <QuantitySelector
               quantity={quantity}
-              onIncrement={() => setQuantity(q => q + 1)}
+              onIncrement={() => setQuantity(q => Math.min(q + 1, 8))}
               onDecrement={() => setQuantity(q => (q > 1 ? q - 1 : 1))}
               readOnly={false}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val)) {
+                  setQuantity(val);
+                }
+              }}
             />
           </div>
 

@@ -2,8 +2,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "../ui/dialog";
-import { useAuth } from '../Context/AuthContext';
-import { useCart } from '../Context/CartContext';
+import { useAuth } from '../../hooks/useAuth';
+import { useCart } from '../../hooks/useCart';
 import { LoginPayload } from '../../api/auth';
 
 // Define the event name for opening the login dialog
@@ -63,7 +63,6 @@ function Navbar() {
 
     if (success) {
       setIsDialogOpen(false);
-      navigate('/');
     } else {
       setError(authError || 'Invalid email or password');
     }

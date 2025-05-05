@@ -1,12 +1,5 @@
 /* Cart Context - Manages shopping cart state and synchronization across components */
-import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-
-/* Custom Event for Cart Updates */
-export const dispatchCartUpdateEvent = () => {
-  // Create a custom event that components can listen for
-  const event = new CustomEvent('cart-updated');
-  window.dispatchEvent(event);
-};
+import { createContext, useState, useEffect, ReactNode } from 'react';
 
 /* Type Definitions */
 interface CartContextType {
@@ -15,16 +8,7 @@ interface CartContextType {
 }
 
 /* Context Creation */
-const CartContext = createContext<CartContextType | null>(null);
-
-/* Custom Hook for Using Cart Context */
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
-};
+export const CartContext = createContext<CartContextType | null>(null);
 
 interface CartProviderProps {
   children: ReactNode;

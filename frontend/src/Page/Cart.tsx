@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { QuantitySelector } from "@/components/ui/quantitySelector";
 import { createOrder } from "../api/order";
 import { useState, useEffect } from "react";
-import { useAuth } from "../components/Context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import api from "../api/client";
-import { dispatchCartUpdateEvent } from "../components/Context/CartContext";
+import { dispatchCartUpdateEvent } from "../hooks/useCartEvents";
 import { getBookDetails, BookDetailResponse } from "../api/book";
 import { openLoginDialog } from '@/components/Navbar/Navbar';
 
@@ -352,6 +352,14 @@ export default function CartPage() {
                                         onIncrement={() => updateItemQuantity(item.id, 1)}
                                         onDecrement={() => updateItemQuantity(item.id, -1)}
                                         readOnly={false}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value, 10);
+                                            if (!isNaN(val) && val > 0) {
+                                                // Calculate the change required to reach the new value
+                                                const change = val - item.quantity;
+                                                updateItemQuantity(item.id, change);
+                                            }
+                                        }}
                                     />
                                 </td>
                                 <td className="py-2 px-4 w-[25%] text-left">${item.order_item_total.toFixed(2)}</td>
