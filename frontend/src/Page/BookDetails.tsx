@@ -153,6 +153,8 @@ const BookDetails = () => {
       return;
     }
 
+    const MAX_QUANTITY = 8; // Define maximum quantity per item
+
     // Get current cart items from localStorage
     const cartItemsJson = localStorage.getItem('cart');
     const cartItems: CartItem[] = cartItemsJson ? JSON.parse(cartItemsJson) : [];
@@ -161,8 +163,25 @@ const BookDetails = () => {
     const existingItemIndex = cartItems.findIndex((item: CartItem) => item.id === book.id);
 
     if (existingItemIndex > -1) {
-      // Update quantity if item exists
-      cartItems[existingItemIndex].quantity += quantity;
+      // Calculate the new total quantity
+      const newTotalQuantity = cartItems[existingItemIndex].quantity + quantity;
+
+      // Check if new total exceeds max quantity
+      if (newTotalQuantity > MAX_QUANTITY) {
+        // Alert user that they've reached the maximum quantity
+        const currentQuantity = cartItems[existingItemIndex].quantity;
+        const remainingQuantity = MAX_QUANTITY - currentQuantity;
+
+        if (remainingQuantity > 0) {
+          alert(`You already have ${currentQuantity} of this item in your cart. You can add ${remainingQuantity} more.`);
+        } else {
+          alert(`You already have the maximum quantity (${MAX_QUANTITY}) of this item in your cart.`);
+        }
+        return;
+      }
+
+      // Update quantity if item exists and doesn't exceed maximum
+      cartItems[existingItemIndex].quantity = newTotalQuantity;
     } else {
       // Add new item if it doesn't exist
       cartItems.push({
@@ -234,7 +253,7 @@ const BookDetails = () => {
       <BookHeader text={book.category} />
 
       {/* Main Content Container */}
-      <div className="flex flex-col lg:flex-row gap-4 lg:justify-between">
+      <div className="flex flex-col lg:flex-row gap-4 pt-4 lg:justify-between">
         {/* Book Information Panel */}
         <div className="w-full lg:w-[68%] border-2 border-gray-400 rounded-lg flex flex-col relative p-4">
           <div className='flex flex-col md:flex-row gap-6'>
