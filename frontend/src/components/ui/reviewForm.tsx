@@ -15,18 +15,19 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useState } from "react"
 import { postReview } from "../../api/review"
+import { useTranslation } from "react-i18next"
 
-const FormSchema = z.object({
+const getFormSchema = (t: any) => z.object({
   review_title: z.string().min(1, {
-    message: "Title must be at least 1 characters.",
+    message: t('form_validation_title_min'),
   }).max(120, {
-    message: "Title cannot exceed 120 characters.",
+    message: t('form_validation_title_max'),
   }),
   review_details: z.string().max(1000, {
-    message: "Review cannot exceed 1000 characters.",
+    message: t('form_validation_review_max'),
   }).optional(),
   rating_star: z.number().min(1, {
-    message: "Please select a rating.",
+    message: t('form_validation_rating'),
   }).max(5)
 })
 
@@ -36,6 +37,9 @@ interface ReviewFormProps {
 
 export function ReviewForm({ book_id }: ReviewFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useTranslation();
+
+  const FormSchema = getFormSchema(t);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -69,18 +73,18 @@ export function ReviewForm({ book_id }: ReviewFormProps) {
       console.log("Review data:", reviewData);
       await postReview(reviewData);
       form.reset();
-      alert("Review submitted successfully!");
+      alert(t('review_form_success'));
       window.location.reload();
     } catch (error) {
       console.error("Failed to submit review:", error);
-      alert("Failed to submit review. Please try again later.");
+      alert(t('review_form_error'));
     } finally {
       setIsSubmitting(false);
     }
   }
   return (
     <div className="border-2 border-gray-400 rounded-lg p-4">
-      <div className="font-bold text-xl mb-4 ">Write a Review</div>
+      <div className="font-bold text-xl mb-4 ">{t('review_form_title')}</div>
       <div className="h-px bg-gray-300 -mx-4 mb-4"></div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -90,7 +94,7 @@ export function ReviewForm({ book_id }: ReviewFormProps) {
             name="review_title"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Add a Title</FormLabel>
+                <FormLabel>{t('review_form_add_title')}</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -104,7 +108,7 @@ export function ReviewForm({ book_id }: ReviewFormProps) {
             name="review_details"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Details please! Your review helps other shoppers</FormLabel>
+                <FormLabel>{t('review_form_details')}</FormLabel>
                 <FormControl>
                   <Textarea
                     className="min-h-[80px]"
@@ -122,7 +126,7 @@ export function ReviewForm({ book_id }: ReviewFormProps) {
             name="rating_star"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Select a rating star</FormLabel>
+                <FormLabel>{t('review_form_select_rating')}</FormLabel>
                 <FormControl>
                   <div className="flex items-center">
                     <div className="relative w-full">
@@ -131,12 +135,12 @@ export function ReviewForm({ book_id }: ReviewFormProps) {
                         value={field.value}
                         onChange={(e) => handleRatingChange(parseInt(e.target.value, 10))}
                       >
-                        <option value="0" disabled>Select Rating</option>
-                        <option value="1">1 Star</option>
-                        <option value="2">2 Stars</option>
-                        <option value="3">3 Stars</option>
-                        <option value="4">4 Stars</option>
-                        <option value="5">5 Stars</option>
+                        <option value="0" disabled>{t('review_form_rating_select')}</option>
+                        <option value="1">{t('review_form_1_star')}</option>
+                        <option value="2">{t('review_form_2_stars')}</option>
+                        <option value="3">{t('review_form_3_stars')}</option>
+                        <option value="4">{t('review_form_4_stars')}</option>
+                        <option value="5">{t('review_form_5_stars')}</option>
                       </select>
                     </div>
                   </div>
@@ -149,7 +153,7 @@ export function ReviewForm({ book_id }: ReviewFormProps) {
           <div className="h-px bg-gray-300 -mx-4 mb-4"></div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Submit Review"}
+            {isSubmitting ? t('review_form_submitting') : t('review_form_submit')}
           </Button>
         </form>
       </Form>

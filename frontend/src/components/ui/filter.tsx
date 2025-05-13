@@ -3,6 +3,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { getCategories, Category } from "@/api/category";
 import { getAuthors, Author } from "@/api/author";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslation } from "react-i18next";
 
 interface BookFiltersProps {
     onFilterChange?: (filters: FilterState) => void;
@@ -22,6 +23,7 @@ export const BookFilters = ({ onFilterChange }: BookFiltersProps) => {
     const [authorsLoading, setAuthorsLoading] = useState(true);
     const [categoriesError, setCategoriesError] = useState("");
     const [authorsError, setAuthorsError] = useState("");
+    const { t } = useTranslation();
     const [selectedFilters, setSelectedFilters] = useState<FilterState>({
         categories: [],
         authors: [],
@@ -119,20 +121,20 @@ export const BookFilters = ({ onFilterChange }: BookFiltersProps) => {
 
     return (
         <div className="flex flex-col gap-4 font-bold text-xl w-full">
-            <div className="w-full">Filter By</div>
+            <div className="w-full">{t('shop_filter_by')}</div>
             <div className="w-full relative overflow-hidden">
                 <Accordion type="multiple" className="w-full">
                     <AccordionItem value="item-1" className="border border-gray-300 rounded-md mb-2 w-full overflow-hidden">
                         <AccordionTrigger className="p-2 w-full">
-                            <div className="w-full text-left">Category</div>
+                            <div className="w-full text-left">{t('shop_category')}</div>
                         </AccordionTrigger>
                         <AccordionContent className="w-full overflow-hidden">
                             {categoriesLoading ? (
-                                <div className="text-sm font-normal">Loading categories...</div>
+                                <div className="text-sm font-normal">{t('shop_loading_categories')}</div>
                             ) : categoriesError ? (
                                 <div className="text-sm font-normal text-red-500">{categoriesError}</div>
                             ) : categories.length === 0 ? (
-                                <div className="text-sm font-normal">No categories available</div>
+                                <div className="text-sm font-normal">{t('shop_no_categories_available')}</div>
                             ) : (
                                 <ScrollArea className="h-40 w-full">
                                     <div className="space-y-1 pr-3 w-full">
@@ -158,15 +160,15 @@ export const BookFilters = ({ onFilterChange }: BookFiltersProps) => {
                     </AccordionItem>
                     <AccordionItem value="item-2" className="border border-gray-300 rounded-md mb-2 w-full overflow-hidden">
                         <AccordionTrigger className="p-2 w-full">
-                            <div className="w-full text-left">Author</div>
+                            <div className="w-full text-left">{t('shop_author')}</div>
                         </AccordionTrigger>
                         <AccordionContent className="w-full overflow-hidden">
                             {authorsLoading ? (
-                                <div className="text-sm font-normal">Loading authors...</div>
+                                <div className="text-sm font-normal">{t('shop_loading_authors')}</div>
                             ) : authorsError ? (
                                 <div className="text-sm font-normal text-red-500">{authorsError}</div>
                             ) : authors.length === 0 ? (
-                                <div className="text-sm font-normal">No authors available</div>
+                                <div className="text-sm font-normal">{t('shop_no_authors_available')}</div>
                             ) : (
                                 <ScrollArea className="h-40 w-full">
                                     <div className="space-y-1 pr-3 w-full">
@@ -192,7 +194,7 @@ export const BookFilters = ({ onFilterChange }: BookFiltersProps) => {
                     </AccordionItem>
                     <AccordionItem value="item-3" className="border border-gray-300 rounded-md mb-2 w-full overflow-hidden" style={{ borderBottom: '1px solid rgb(209, 213, 219)' }}>
                         <AccordionTrigger className="p-2 w-full">
-                            <div className="w-full text-left">Rating</div>
+                            <div className="w-full text-left">{t('shop_rating')}</div>
                         </AccordionTrigger>
                         <AccordionContent className="w-full overflow-hidden">
                             <div className="space-y-1 w-full">
@@ -205,7 +207,7 @@ export const BookFilters = ({ onFilterChange }: BookFiltersProps) => {
                                         <div className="w-full flex items-center">
                                             <div className="overflow-hidden text-ellipsis whitespace-nowrap w-full">
                                                 <span className={selectedFilters.ratings.includes(rating) ? "underline font-medium" : ""}>
-                                                    {rating} {rating === 1 ? "Star" : "Stars"}
+                                                    {rating} {rating === 1 ? t('shop_star') : t('shop_stars')}
                                                 </span>
                                             </div>
                                         </div>

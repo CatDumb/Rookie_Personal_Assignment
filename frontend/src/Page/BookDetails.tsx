@@ -8,6 +8,7 @@ import { ReviewItem } from '../components/ui/reviewItem';
 import { QuantitySelector } from '@/components/ui/quantitySelector';
 import { dispatchCartUpdateEvent } from '@/hooks/useCartEvents';
 import { useBookDetails } from '@/hooks/useBookDetails';
+import { useTranslation } from 'react-i18next';
 
 import {
   Pagination,
@@ -38,6 +39,7 @@ const BookDetails = () => {
   /* URL parameters */
   const { id } = useParams<{ id: string }>();
   const numericId = id ? parseInt(id, 10) : null;
+  const { t } = useTranslation();
 
   /* Book data state */
   const { book, loading: bookLoading, error: bookError } = useBookDetails(numericId);
@@ -108,8 +110,8 @@ const BookDetails = () => {
 
   const getSortOptionText = (option: SortOptionReview): string => {
     switch (option) {
-      case 'newest': return 'Newest to oldest';
-      case 'oldest': return 'Oldest to newest';
+      case 'newest': return t('sort_newest_to_oldest');
+      case 'oldest': return t('sort_oldest_to_newest');
     }
   };
 
@@ -143,8 +145,8 @@ const BookDetails = () => {
   }));
 
   const sortOptions: DropdownOption<SortOptionReview>[] = [
-    { value: 'newest', label: 'Newest to oldest' },
-    { value: 'oldest', label: 'Oldest to newest' }
+    { value: 'newest', label: t('sort_newest_to_oldest') },
+    { value: 'oldest', label: t('sort_oldest_to_newest') }
   ];
 
   /* Add to cart functionality */
@@ -173,9 +175,9 @@ const BookDetails = () => {
         const remainingQuantity = MAX_QUANTITY - currentQuantity;
 
         if (remainingQuantity > 0) {
-          alert(`You already have ${currentQuantity} of this item in your cart. You can add ${remainingQuantity} more.`);
+          alert(`${t('book_details_max_quantity_alert_1')} ${currentQuantity} ${t('book_details_max_quantity_alert_2')} ${remainingQuantity} ${t('book_details_max_quantity_alert_3')}`);
         } else {
-          alert(`You already have the maximum quantity (${MAX_QUANTITY}) of this item in your cart.`);
+          alert(`${t('book_details_max_quantity_alert_4')} (${MAX_QUANTITY}) ${t('book_details_max_quantity_alert_5')}`);
         }
         return;
       }
@@ -197,7 +199,7 @@ const BookDetails = () => {
     dispatchCartUpdateEvent();
 
     // Alert user that item was added
-    alert(`Added ${book.book_title} (Quantity: ${quantity}) to your cart.`);
+    alert(`${t('book_details_added_to_cart')} ${book.book_title} (${t('book_details_quantity_to_cart')} ${quantity}) ${t('book_details_to_your_cart')}`);
   };
 
   /* Rating filter handler */
@@ -222,15 +224,15 @@ const BookDetails = () => {
 
   /* Loading and error states */
   if (bookLoading) {
-    return <div className="text-center py-20">Loading book details...</div>;
+    return <div className="text-center py-20">{t('book_details_loading')}</div>;
   }
 
   if (bookError) {
-    return <div className="text-center py-20 text-red-500">{bookError}</div>;
+    return <div className="text-center py-20 text-red-500">{t('book_details_error')}</div>;
   }
 
   if (!book) {
-    return <div className="text-center py-20">Book not found</div>;
+    return <div className="text-center py-20">{t('book_details_not_found')}</div>;
   }
 
   // Get current book stats safely
@@ -277,7 +279,7 @@ const BookDetails = () => {
                 )}
               </div>
               <div className='text-right mt-2'>
-                <span className='font-light'>By (author) <span className='font-bold'>{book.author}</span></span>
+                <span className='font-light'>{t('book_details_by_author')} <span className='font-bold'>{book.author}</span></span>
               </div>
             </div>
 
@@ -311,7 +313,7 @@ const BookDetails = () => {
           </div>
 
           <div className='text-left text-gray-500'>
-            Quantity
+            {t('book_details_quantity')}
           </div>
           <div className="mb-8">
             <QuantitySelector
@@ -329,7 +331,7 @@ const BookDetails = () => {
           </div>
 
           <Button className="w-full py-6" onClick={handleAddToCart}>
-            Add to Cart
+            {t('book_details_add_to_cart')}
           </Button>
         </div>
       </div>
@@ -341,17 +343,17 @@ const BookDetails = () => {
           <div className='flex flex-col gap-4 px-4 py-8'>
             <div className='flex flex-row gap-2 items-baseline'>
               <div className='font-bold text-xl'>
-                Customer Reviews
+                {t('book_reviews_customer_reviews')}
               </div>
 
               <div className='text-gray-500 text-sm'>
-                (Filter by rating: {activeRatingFilter ? `${activeRatingFilter} Star` : 'All'})
+                ({t('book_reviews_filter_by_rating')} {activeRatingFilter ? `${activeRatingFilter} ${t('book_reviews_star')}` : t('book_reviews_all')})
               </div>
             </div>
 
             {/* Average Rating Display */}
             <div className='font-bold text-4xl flex items-center gap-2'>
-              <div>{currentBookStats.avg_rating.toFixed(1)} Star</div>
+              <div>{currentBookStats.avg_rating.toFixed(1)} {t('book_reviews_star')}</div>
             </div>
 
             {/* Rating Filter Options */}
@@ -361,37 +363,37 @@ const BookDetails = () => {
                   className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === null ? 'font-bold underline' : ''}`}
                   onClick={() => handleRatingFilterClick(null)}
                 >
-                  All ({currentBookStats.review_count})
+                  {t('book_reviews_all')} ({currentBookStats.review_count})
                 </div>
                 <div
                   className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 5 ? 'font-bold underline' : ''}`}
                   onClick={() => handleRatingFilterClick(5)}
                 >
-                  5 Star ({currentBookStats.star_5})
+                  5 {t('book_reviews_star')} ({currentBookStats.star_5})
                 </div>
                 <div
                   className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 4 ? 'font-bold underline' : ''}`}
                   onClick={() => handleRatingFilterClick(4)}
                 >
-                  4 Star ({currentBookStats.star_4})
+                  4 {t('book_reviews_star')} ({currentBookStats.star_4})
                 </div>
                 <div
                   className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 3 ? 'font-bold underline' : ''}`}
                   onClick={() => handleRatingFilterClick(3)}
                 >
-                  3 Star ({currentBookStats.star_3})
+                  3 {t('book_reviews_star')} ({currentBookStats.star_3})
                 </div>
                 <div
                   className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 2 ? 'font-bold underline' : ''}`}
                   onClick={() => handleRatingFilterClick(2)}
                 >
-                  2 Star ({currentBookStats.star_2})
+                  2 {t('book_reviews_star')} ({currentBookStats.star_2})
                 </div>
                 <div
                   className={`px-2 hover:underline cursor-pointer ${activeRatingFilter === 1 ? 'font-bold underline' : ''}`}
                   onClick={() => handleRatingFilterClick(1)}
                 >
-                  1 Star ({currentBookStats.star_1})
+                  1 {t('book_reviews_star')} ({currentBookStats.star_1})
                 </div>
               </div>
             </div>
@@ -402,10 +404,10 @@ const BookDetails = () => {
               <div className="text-center text-gray-500">
                 {totalReviews > 0 ? (
                   <>
-                    Showing {Math.min((currentPage - 1) * perPage + 1, activeRatingFilter ? getFilteredReviewCount() : totalReviews)} to {Math.min(currentPage * perPage, activeRatingFilter ? getFilteredReviewCount() : totalReviews)} of {activeRatingFilter ? getFilteredReviewCount() : totalReviews} reviews
+                    {t('book_reviews_showing')} {Math.min((currentPage - 1) * perPage + 1, activeRatingFilter ? getFilteredReviewCount() : totalReviews)} {t('book_reviews_to')} {Math.min(currentPage * perPage, activeRatingFilter ? getFilteredReviewCount() : totalReviews)} {t('book_reviews_of')} {activeRatingFilter ? getFilteredReviewCount() : totalReviews} {t('book_reviews_reviews')}
                   </>
                 ) : (
-                  <>No reviews to display</>
+                  <>{t('book_reviews_no_reviews')}</>
                 )}
               </div>
 
@@ -433,7 +435,7 @@ const BookDetails = () => {
             {/* Reviews List */}
             <div className="mt-4">
               {loadingReviews ? (
-                <div className="text-center py-4">Loading reviews...</div>
+                <div className="text-center py-4">{t('book_reviews_loading')}</div>
               ) : reviews.length > 0 ? (
                 reviews.map((review, index) => (
                   <ReviewItem
@@ -445,7 +447,7 @@ const BookDetails = () => {
                   />
                 ))
               ) : (
-                <div className="text-center py-4 text-gray-500">No reviews yet</div>
+                <div className="text-center py-4 text-gray-500">{t('book_reviews_no_reviews_yet')}</div>
               )}
             </div>
 

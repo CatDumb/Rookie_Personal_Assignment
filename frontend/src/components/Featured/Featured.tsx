@@ -3,8 +3,10 @@ import { useState, useEffect } from "react";
 import { BookCard } from "../ui/card";
 import { getRecommendations, RecommendResponse, getPopular, PopularResponse } from "../../api/book";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { useTranslation } from "react-i18next";
 
 function Featured() {
+  const { t } = useTranslation();
   /* State Management */
   const [recommendedBooks, setRecommendedBooks] = useState<RecommendResponse[]>([]);
   const [popularBooks, setPopularBooks] = useState<PopularResponse[]>([]);
@@ -44,7 +46,7 @@ function Featured() {
     <div className="flex flex-col gap-4 py-4 justify-center">
       {/* Section Title */}
       <div className="flex justify-center items-center">
-        <div className="text-lg font-bold">Featured</div>
+        <div className="text-lg font-bold">{t('home_featured')}</div>
       </div>
 
       {/* Tab Container */}
@@ -55,8 +57,8 @@ function Featured() {
         {/* Tab Navigation */}
         <div className="flex justify-center">
           <TabsList className="grid w-96 grid-cols-2">
-            <TabsTrigger value="recommended">Recommended</TabsTrigger>
-            <TabsTrigger value="popular">Popular</TabsTrigger>
+            <TabsTrigger value="recommended">{t('home_recommended')}</TabsTrigger>
+            <TabsTrigger value="popular">{t('home_popular')}</TabsTrigger>
           </TabsList>
         </div>
 
@@ -65,7 +67,7 @@ function Featured() {
           {/* Recommended Books Tab */}
           <TabsContent value="recommended">
             {recommendedLoading ? (
-              <div className="text-center py-8">Loading...</div>
+              <div className="text-center py-8">{t('home_loading')}</div>
             ) : recommendedError ? (
               <div className="text-center text-red-500 py-8">{recommendedError}</div>
             ) : (
@@ -88,7 +90,7 @@ function Featured() {
           {/* Popular Books Tab */}
           <TabsContent value="popular">
             {popularLoading ? (
-              <div className="text-center py-8">Loading...</div>
+              <div className="text-center py-8">{t('home_loading')}</div>
             ) : popularError ? (
               <div className="text-center text-red-500 py-8">{popularError}</div>
             ) : (

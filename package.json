@@ -1,0 +1,10 @@
+{
+  "name": "bookworm",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "concurrently \"cd frontend && npm run dev\" \"cd backend && bookworm\\Scripts\\activate && uvicorn app.api.main:app --reload\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

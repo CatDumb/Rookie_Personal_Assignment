@@ -6,20 +6,12 @@ import { QuantitySelector } from "@/components/ui/quantitySelector";
 import { createOrder } from "../api/order";
 import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { getUserDetails } from "../api/auth";
 import { useNavigate } from "react-router-dom";
-import api from "../api/client";
 import { dispatchCartUpdateEvent } from "../hooks/useCartEvents";
 import { getBookDetails, BookDetailResponse } from "../api/book";
 import { openLoginDialog } from '@/components/Navbar/Navbar';
-
-/* Type definitions */
-interface UserDetails {
-  id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  admin: boolean;
-}
+import { useTranslation } from 'react-i18next';
 
 interface InvalidBookData {
   id: number;
@@ -43,10 +35,12 @@ interface ApiErrorResponse {
 /* Main Cart Page Component */
 export default function CartPage() {
     const { cartItemsWithDetails, orderTotal, loading, error, updateItemQuantity, refreshCart } = useCartDetails();
+    const { t } = useTranslation();
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
     const [orderError, setOrderError] = useState<string | null>(null);
     const [showSuccessNotification, setShowSuccessNotification] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
+    const [userId, setUserId] = useState<number | null>(null);
     const [invalidBooks, setInvalidBooks] = useState<InvalidBookData[]>([]);
     const { isLoggedIn } = useAuth();
     const navigate = useNavigate();
@@ -181,17 +175,10 @@ export default function CartPage() {
             }
 
             /* Get the current user's details from the profile endpoint */
-            let userId: number;
+            const userDetails = await getUserDetails();
+            setUserId(userDetails.id);
 
-            try {
-                const response = await api.get<UserDetails>('/api/user/profile');
-                if (!response.data || !response.data.id) {
-                    throw new Error('User profile data is incomplete');
-                }
-                userId = response.data.id;
-                console.log("Got user ID:", userId);
-            } catch (profileError) {
-                console.error("Failed to get user profile:", profileError);
+            if (!userId) {
                 setOrderError("Failed to retrieve your account information. Please try logging in again.");
                 setIsPlacingOrder(false);
                 return;
@@ -246,7 +233,7 @@ export default function CartPage() {
                     );
 
                     if (userIdError) {
-                        errorMessage = "Your user account information couldn't be verified. Please try logging in again.";
+                        errorMessage = t('cart_error_user_verification');
                         // Optionally open login dialog here too
                         openLoginDialog();
                     }
@@ -271,11 +258,11 @@ export default function CartPage() {
             {/* Validation error notification - shows when items in cart are invalid */}
             {validationError && (
                 <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-600 text-white p-4 rounded-lg shadow-lg z-[200] max-w-md w-full mx-auto">
-                    <p className="font-bold mb-2">Error</p>
+                    <p className="font-bold mb-2">{t('cart_error_title')}</p>
                     <p>{validationError}</p>
                     {invalidBooks.length > 0 && (
                         <div className="mt-4">
-                            <p className="font-bold">Invalid items:</p>
+                            <p className="font-bold">{t('cart_error_invalid_items')}</p>
                             <ul className="list-disc pl-5 mt-2">
                                 {invalidBooks.map((book, index) => (
                                     <li key={index}>{book.name} - {book.reason}</li>
@@ -285,7 +272,7 @@ export default function CartPage() {
                                 onClick={removeInvalidBooks}
                                 className="mt-4 bg-white text-red-600 px-4 py-2 rounded hover:bg-gray-100 font-bold"
                             >
-                                Remove invalid items
+                                {t('cart_error_remove_invalid')}
                             </button>
                         </div>
                     )}
@@ -300,10 +287,10 @@ export default function CartPage() {
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-gray-400">
-                            <th className="text-left py-2 px-4 w-[60%]">Name</th>
-                            <th className="text-left py-2 px-4 w-[10%]">Price</th>
-                            <th className="text-left py-2 px-4 w-[20%]">Quantity</th>
-                            <th className="text-left py-2 px-4 w-[10%]">Total</th>
+                            <th className="text-left py-2 px-4 w-[60%]">{t('cart_name')}</th>
+                            <th className="text-left py-2 px-4 w-[10%]">{t('cart_price')}</th>
+                            <th className="text-left py-2 px-4 w-[20%]">{t('cart_quantity')}</th>
+                            <th className="text-left py-2 px-4 w-[10%]">{t('cart_total')}</th>
                             </tr>
                         </thead>
 
@@ -368,7 +355,7 @@ export default function CartPage() {
                             ) : (
                             <tr>
                                 <td colSpan={4} className="py-4 px-4 text-center text-gray-500">
-                                Your cart is empty
+                                {t('cart_empty')}
                                 </td>
                             </tr>
                             )}
@@ -379,7 +366,7 @@ export default function CartPage() {
                 {/* Order summary and checkout section */}
                 <div className="w-full md:w-[40%] h-fit border-2 border-gray-400 rounded-lg p-4">
                     <div className="text-xl text-center font-bold mb-2">
-                        Cart Totals
+                        {t('cart_totals')}
                     </div>
                     <hr className="border-t border-gray-400 my-2 -mx-4" />
 
@@ -394,7 +381,7 @@ export default function CartPage() {
                         disabled={cartItemsWithDetails.length === 0 || isPlacingOrder}
                         onClick={handlePlaceOrder}
                     >
-                        {isPlacingOrder ? "Processing..." : "Place order"}
+                        {isPlacingOrder ? t('cart_processing') : t('cart_place_order')}
                     </Button>
                 </div>
             </div>

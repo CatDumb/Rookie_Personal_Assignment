@@ -23,7 +23,7 @@ export function Dropdown<T>({
   onChange,
   buttonLabel,
   className = "",
-  dropdownWidth = "w-48",
+  dropdownWidth = "w-full",
 }: DropdownProps<T>) {
   // Local state to track whether the dropdown is open
   const [isOpen, setIsOpen] = useState(false);

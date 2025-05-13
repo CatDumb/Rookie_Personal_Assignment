@@ -136,3 +136,16 @@ class OrderResponse(OrderRead):
 
     # Explicitly match the name used in the route
     pass
+
+
+class OrderListResponse(BaseModel):
+    """
+    Schema for listing multiple orders.
+
+    Extends OrderResponse with a list of orders and pagination metadata.
+
+    Attributes:
+        orders: List of orders
+    """
+
+    orders: List[OrderResponse]

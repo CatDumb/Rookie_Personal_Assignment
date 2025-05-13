@@ -10,7 +10,7 @@ from datetime import datetime
 from app.core.db_config import get_db
 from app.db.order import Order
 from app.db.order_item import OrderItem
-from app.schemas.order import OrderRequest, OrderResponse
+from app.schemas.order import OrderListResponse, OrderRequest, OrderResponse
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -92,6 +92,44 @@ async def create_order(
 
     except Exception as e:
         db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred: {str(e)}",
+        )
+
+
+@router.get(
+    "/get/{id}",
+    response_model=OrderListResponse,
+)
+async def get_order_by_id(
+    id: int,
+    db: Session = Depends(get_db),
+):
+    try:
+        result = OrderListResponse(orders=[])
+        query = (
+            db.query(
+                Order,
+            )
+            .filter(Order.user_id == id)
+            .order_by(Order.id.desc())
+        )
+        orders = query.all()
+        for order in orders:
+            temp = OrderResponse(
+                id=order.id,
+                user_id=order.user_id,
+                order_date=order.order_date,
+                order_total=order.order_total,
+            )
+            order_items = (
+                db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
+            )
+            temp.items = order_items
+            result.orders.append(temp)
+        return result
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred: {str(e)}",

@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "../ui/dialog"
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { LoginPayload } from '../../api/auth';
-
+import { useTranslation } from 'react-i18next';
 // Define the event name for opening the login dialog
 export const LOGIN_DIALOG_EVENT = "open-login-dialog";
 
@@ -28,6 +28,7 @@ function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLLIElement>(null);
+  const { t } = useTranslation();
 
   /* Event listener for the custom login dialog event */
   useEffect(() => {
@@ -93,7 +94,7 @@ function Navbar() {
     location.pathname === path ? 'font-bold underline' : '';
 
   return (
-    <nav className="sticky top-0 left-0 right-0 h-16 bg-gray-300 flex items-center z-[100]">
+    <nav className="sticky top-0 left-0 right-0 h-[var(--navbar-height)] bg-gray-300 flex items-center z-[100]">
       <div className="container mx-auto px-2 sm:px-3 lg:px-4 xl:px-10 flex justify-between items-center h-full">
         {/* Logo and Brand */}
         <div className="flex items-center gap-3 h-full">
@@ -132,7 +133,7 @@ function Navbar() {
               onClick={closeMobileMenu}
               className={`block w-full md:inline-block md:w-auto px-3 py-2 hover:bg-gray-400/30 rounded transition-colors ${getActiveTab('/')}`}
             >
-              Home
+              {t('navbar_home')}
             </Link>
           </li>
           {/* Shop Link */}
@@ -142,7 +143,7 @@ function Navbar() {
               onClick={closeMobileMenu}
               className={`block w-full md:inline-block md:w-auto px-3 py-2 hover:bg-gray-400/30 rounded transition-colors ${getActiveTab('/shop')}`}
             >
-              Shop
+              {t('navbar_shop')}
             </Link>
           </li>
           {/* About Link */}
@@ -152,7 +153,7 @@ function Navbar() {
               onClick={closeMobileMenu}
               className={`block w-full md:inline-block md:w-auto px-3 py-2 hover:bg-gray-400/30 rounded transition-colors ${getActiveTab('/about')}`}
             >
-              About
+              {t('navbar_about')}
             </Link>
           </li>
           {/* Cart Link */}
@@ -161,7 +162,7 @@ function Navbar() {
               onClick={handleCartClick}
               className={`flex items-center justify-center md:justify-start gap-1 w-full md:w-auto px-3 py-2 hover:bg-gray-400/30 rounded transition-colors ${getActiveTab('/cart')}`}
             >
-              <span>Cart ({cartItemCount})</span>
+              <span>{t('navbar_cart')} ({cartItemCount})</span>
             </button>
           </li>
           {/* User Profile or Sign In */}
@@ -189,12 +190,18 @@ function Navbar() {
               </button>
               {/* User Dropdown Menu */}
               {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 md:right-0 left-1/2 md:left-auto transform -translate-x-1/2 md:translate-x-0">
+                <div className="absolute right-0 mt-2 w-full bg-white rounded-md shadow-lg py-1 z-20 md:right-0 left-1/2 md:left-auto transform -translate-x-1/2 md:translate-x-0">
+                  <button
+                    onClick={() => navigate('/profile')}
+                    className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                  >
+                    {t('navbar_profile')}
+                  </button>
                   <button
                     onClick={handleSignOut}
                     className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
                   >
-                    Sign out
+                    {t('navbar_signout')}
                   </button>
                 </div>
               )}
@@ -208,15 +215,15 @@ function Navbar() {
                     onClick={closeMobileMenu}
                     className="w-full md:w-auto px-3 py-2 hover:bg-gray-400/30 rounded transition-colors"
                   >
-                    Sign in
+                    {t('navbar_signin')}
                   </button>
                 </DialogTrigger>
                 <DialogContent>
-                  <DialogTitle>Sign In</DialogTitle>
+                  <DialogTitle>{t('navbar_signin')}</DialogTitle>
                   <form onSubmit={handleLogin} className="space-y-4">
                     {error && <p className="text-red-500">{error}</p>}
                     <div>
-                      <label className="block mb-2">Email</label>
+                      <label className="block mb-2">{t('email')}</label>
                       <input
                         type="email"
                         value={email}
@@ -226,7 +233,7 @@ function Navbar() {
                       />
                     </div>
                     <div>
-                      <label className="block mb-2">Password</label>
+                      <label className="block mb-2">{t('password')}</label>
                       <input
                         type="password"
                         value={password}
@@ -239,7 +246,7 @@ function Navbar() {
                       type="submit"
                       className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
                     >
-                      Sign In
+                      {t('navbar_signin')}
                     </button>
                   </form>
                 </DialogContent>

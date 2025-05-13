@@ -4,6 +4,8 @@ import { BookDetailResponse } from "./book";
 // Valid per page options
 export const VALID_PER_PAGE_OPTIONS = [5, 15, 20, 25] as const;
 export type ValidPerPage = typeof VALID_PER_PAGE_OPTIONS[number];
+export const LANGUAGE = ['en', 'vi'] as const;
+export type Language = typeof LANGUAGE[number];
 
 // Types for request parameters
 export interface ShopParams {
@@ -75,7 +77,7 @@ export function transformToViewModel(apiBook: BookApiItem): BookViewModel {
     id: apiBook.id,
     book_title: apiBook.book_title,
     author: apiBook.author,
-    price: apiBook.book_price || apiBook.price,
+    price: apiBook.book_price || apiBook.price || 0,
     discountPrice: apiBook.discount_price,
     imageUrl: apiBook.book_cover_photo || apiBook.cover_photo || "/placeholder-book.png",
     rating: apiBook.average_rating || apiBook.avg_rating || 0,

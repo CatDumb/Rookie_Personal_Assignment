@@ -1,6 +1,7 @@
 import { ShopHeader } from "@/components/Header/ShopHeader";
 import { BookFilters, FilterState } from "@/components/ui/filter";
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 // Import shop API functions and types
 import {
   getShopBooks,
@@ -44,6 +45,8 @@ const ShopPage = () => {
   // Mapping collections for display
   const [categoryMap, setCategoryMap] = useState<Map<number, string>>(new Map());
   const [authorMap, setAuthorMap] = useState<Map<number, string>>(new Map());
+
+  const { t } = useTranslation();
 
   /* Load category and author data for filtering */
   useEffect(() => {
@@ -144,26 +147,26 @@ const ShopPage = () => {
   // Get display text for sort options
   const getSortOptionText = (option: SortOptionShop): string => {
     switch (option) {
-      case 'onsale': return 'On Sale';
-      case 'popularity': return 'Popularity';
-      case 'price-asc': return 'Price: Low to High';
-      case 'price-desc': return 'Price: High to Low';
-      default: return 'On Sale';
+      case 'onsale': return t('shop_sort_on_sale');
+      case 'popularity': return t('shop_sort_popular');
+      case 'price-asc': return t('shop_sort_price_low_to_high');
+      case 'price-desc': return t('shop_sort_price_high_to_low');
+      default: return t('shop_sort_on_sale');
     }
   };
 
   // Create dropdown options for items per page
   const perPageOptions: DropdownOption<ValidPerPage>[] = VALID_PER_PAGE_OPTIONS.map(option => ({
     value: option,
-    label: `${option} per page`
+    label: `${option} ${t('shop_per_page')}`
   }));
 
   // Create dropdown options for sort
   const sortOptions: DropdownOption<SortOptionShop>[] = [
-    { value: 'onsale', label: 'On Sale' },
-    { value: 'popularity', label: 'Popularity' },
-    { value: 'price-asc', label: 'Price: Low to High' },
-    { value: 'price-desc', label: 'Price: High to Low' }
+    { value: 'onsale', label: t('shop_sort_on_sale') },
+    { value: 'popularity', label: t('shop_sort_popular') },
+    { value: 'price-asc', label: t('shop_sort_price_low_to_high') },
+    { value: 'price-desc', label: t('shop_sort_price_high_to_low') }
   ];
 
   /* Component Rendering */
@@ -194,11 +197,11 @@ const ShopPage = () => {
                 <div>
                   {totalBooks > 0 ? (
                     <p className="text-sm">
-                      Showing {itemsPerPage * (currentPage - 1) + 1}-{Math.min(itemsPerPage * currentPage, totalBooks)} of {totalBooks} books
+                      {t('shop_showing')} {itemsPerPage * (currentPage - 1) + 1}-{Math.min(itemsPerPage * currentPage, totalBooks)} {t('shop_of')} {totalBooks} {t('shop_books')}
                     </p>
                   ) : (
                     <p className="text-sm">
-                      Showing 0-0 of 0 books
+                      {t('shop_showing')} 0-{t('shop_of')} 0 {t('shop_books')}
                     </p>
                   )}
                 </div>
@@ -232,7 +235,7 @@ const ShopPage = () => {
                 <p>{error}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 justify-items-center mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 justify-items-center mt-6">
                 {books.map((book) => (
                   <BookCard
                     key={book.id}

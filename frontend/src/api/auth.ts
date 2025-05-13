@@ -19,6 +19,19 @@ export interface RefreshTokenResponse {
     token_type: string;
 }
 
+export interface UserDetails {
+    id: number;
+    email: string;
+    first_name: string;
+    last_name: string;
+    admin: boolean;
+}
+
+export function getUserDetails() {
+    return api.get<UserDetails>("/api/user/profile")
+        .then(res => res.data);
+}
+
 export function login(payload: LoginPayload) {
     return api.post<LoginResponse>("/api/user/login", payload)
         .then(res => res.data);
