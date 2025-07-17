@@ -2,30 +2,38 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.4.0
+    rev: v5.0.0
     hooks:
       - id: check-ast
       - id: trailing-whitespace
+        exclude: ^backend/requirements\.txt$|requirements\.txt$
       - id: check-toml
       - id: end-of-file-fixer
+        exclude: ^backend/requirements\.txt$|requirements\.txt$
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+        exclude: ^backend/requirements\.txt$|requirements\.txt$
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
 
   - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
+    rev: 6.0.1
     hooks:
       - id: isort
         args: ["--profile", "black", "--filter-files"]
+        exclude: ^backend/requirements\.txt$|requirements\.txt$
 
   - repo: https://github.com/asottile/add-trailing-comma
-    rev: v2.1.0
+    rev: v3.2.0
     hooks:
       - id: add-trailing-comma
+        exclude: ^backend/requirements\.txt$|requirements\.txt$
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Ruff version.
-    rev: v0.4.4
+    rev: v0.12.3
     hooks:
-      # Run the linter.
       - id: ruff
         args: [ --fix ]
-        # Run the formatter.
+        exclude: ^backend/requirements\.txt$|requirements\.txt$
       - id: ruff-format
+        exclude: ^backend/requirements\.txt$|requirements\.txt$
